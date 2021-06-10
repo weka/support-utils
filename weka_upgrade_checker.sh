@@ -27,9 +27,7 @@ cat <<EOF
 Usage: [-a for AWS insistence.]
 Usage: [-c for skipping client upgrade checks.]
 Usage: [-r  Check remote system. Enter valid ip address of a weka backend or client.]
-
 This script checks Weka Clusters for Upgrade eligibility. On non-AWS insistences you must run the script as root user.
-
 OPTIONS:
   -a  Creates a specific aws ssh config file for AWS insistence.
   -c  Skips client checks
@@ -65,19 +63,15 @@ CompressionLevel 9
 StrictHostKeyChecking no
 PasswordAuthentication no
 ConnectTimeout 5
-GlobalKnownHostsFile "$DIR"/global_known_hosts
-EOF
-else
-cat > $SSHCONF <<EOF
-BatchMode yes
-Compression yes
-CompressionLevel 9
-StrictHostKeyChecking no
-PasswordAuthentication no
-ConnectTimeout 5
 GlobalKnownHostsFile $DIR/global_known_hosts
 IdentityFile /home/ec2-user/.ssh/support_id_rsa.pem
 EOF
+fi
+
+if [ -z $AWS ]; then
+  SSH='/usr/bin/ssh'
+else
+  SSH="/usr/bin/ssh -F /tmp/ssh_config"
 fi
 
 function logit() {
@@ -186,6 +180,7 @@ NOTICE "CHECKING FOR ANY ALERTS"
 WEKAALERTS="$(weka status | awk '/alerts:/ {print $2}')"
 if [ "$WEKAALERTS" != 0 ]; then
 	WARN "$WEKAALERTS Weka alerts present, for additional detials see log ${LOG}."
+  logit "weka alerts"
 else
 	GOOD "No Weka alerts present."
 fi
@@ -239,12 +234,12 @@ else
 fi
 
 function check_ssh_connectivity() {
-	if /usr/bin/ssh -F "$SSHCONF" "$1" exit &>/dev/null; then
-		GOOD "	[SSH PASSWORDLESS CONNECTIVITY CHECK] SSH connectivity test PASSED on Host $2 $1"
-	else
-		BAD "	[SSH PASSWORDLESS CONNECTIVITY CHECK] SSH connectivity test FAILED on Host $2 $1"
-		return 1
-	fi
+  if $SSH "$1" exit &>/dev/null; then
+    GOOD "	[SSH PASSWORDLESS CONNECTIVITY CHECK] SSH connectivity test PASSED on Host $2 $1"
+  else
+    BAD "	[SSH PASSWORDLESS CONNECTIVITY CHECK] SSH connectivity test FAILED on Host $2 $1"
+    return 1
+  fi
 }
 
 function weka_agent_service() {
@@ -268,16 +263,16 @@ function diffdate() {
     return 1
   fi
 
-	DIFF=$(( $(date --utc '+%s') - $1 ))
-	if [ "$DIFF" -lt 0 ]; then
-		let DIFF="(( 0 - "$DIFF" ))"
-	fi
+  DIFF=$(( $(date --utc '+%s') - $1 ))
+  if [ "$DIFF" -lt 0 ]; then
+    let DIFF="(( 0 - "$DIFF" ))"
+  fi
 
-	if [ "$DIFF" -gt 60 ]; then
-		BAD "	[TIME SYNC CHECK] There is a time difference of grater than 60s between Host $(hostname) and $2, time difference of ${DIFF}s."
-	else
-		GOOD "	[TIME SYNC CHECK] Time in sync between host $(hostname) and $2 total difference ${DIFF}s."
-	fi
+  if [ "$DIFF" -gt 60 ]; then
+    BAD "	[TIME SYNC CHECK] There is a time difference of grater than 60s between Host $(hostname) and $2, time difference of ${DIFF}s."
+  else
+    GOOD "	[TIME SYNC CHECK] Time in sync between host $(hostname) and $2 total difference ${DIFF}s."
+  fi
 }
 
 function weka_container_status() {
@@ -297,46 +292,46 @@ LOGSDIR1='/opt/weka'
 LOGSDIR2='/opt/weka/logs'
 TOTALHOSTS=$(weka cluster host --no-header | wc -l)
 function freespace_backend() {
-	if [ -z "$1" ]; then
-		BAD "	[FREE SPACE CHECK] Unable to determine free space on Host $3."
-		return 1
-	fi
+  if [ -z "$1" ]; then
+    BAD "	[FREE SPACE CHECK] Unable to determine free space on Host $3."
+    return 1
+  fi
 
-	if [ "$1" -lt "$HOSTSPACE1" ]; then
-		BAD "	[FREE SPACE CHECK] Host $3 has less than recommended free space of ~$(($1 / 1000))GB in $LOGSDIR1."
-		WARN "	[REDUCE TRACES CAPACITY & INCREASE DIRECTORY SIZE] https://stackoverflow.com/c/weka/questions/1785/1786#1786"
-	else
-		GOOD "	[FREE SPACE CHECK] Host $3 has recommended free space of ~$(($1 / 1000))GB in $LOGSDIR1."
-	fi
+  if [ "$1" -lt "$HOSTSPACE1" ]; then
+    BAD "	[FREE SPACE CHECK] Host $3 has less than recommended free space of ~$(($1 / 1000))GB in $LOGSDIR1."
+    WARN "	[REDUCE TRACES CAPACITY & INCREASE DIRECTORY SIZE] https://stackoverflow.com/c/weka/questions/1785/1786#1786"
+  else
+    GOOD "	[FREE SPACE CHECK] Host $3 has recommended free space of ~$(($1 / 1000))GB in $LOGSDIR1."
+  fi
 
   if [[ "$TOTALHOSTS" -ge "$LARGE_CLUSTER" && "$2" -lt "$HOSTSPACE2" ]]; then
     BAD "	[FREE SPACE CHECK] Host $3 has less than recommended free space of $2MB in $LOGSDIR2"
-		WARN "	[REDUCE TRACES CAPACITY & INCREASE DIRECTORY SIZE] https://stackoverflow.com/c/weka/questions/1785/1786#1786"
-	  return 1
-	fi
+    WARN "	[REDUCE TRACES CAPACITY & INCREASE DIRECTORY SIZE] https://stackoverflow.com/c/weka/questions/1785/1786#1786"
+    return 1
+  fi
 
-	if [ "$2" -lt "$HOSTSPACEMIN" ]; then
+  if [ "$2" -lt "$HOSTSPACEMIN" ]; then
     BAD "	[FREE SPACE CHECK] Host $3 has Less than Recommended Free Space of $2MB in $LOGSDIR2."
-		WARN "	[REDUCE TRACES CAPACITY & INCREASE DIRECTORY SIZE] https://stackoverflow.com/c/weka/questions/1785/1786#1786"
+    WARN "	[REDUCE TRACES CAPACITY & INCREASE DIRECTORY SIZE] https://stackoverflow.com/c/weka/questions/1785/1786#1786"
   else
     GOOD "	[FREE SPACE CHECK] Host $3 has Recommended Free Space of $2MB in $LOGSDIR2."
   fi
 }
 
 function upgrade_container() {
-	if [ -z "$1" ]; then
-	  GOOD "	[UPGRADE CONTAINER CHECK] No upgrade containers found on Host $2."
-	else
-	  BAD "	[UPGRADE CONTAINER CHECK] Upgrade container found on Host $2 status $1."
-	fi
+  if [ -z "$1" ]; then
+    GOOD "	[UPGRADE CONTAINER CHECK] No upgrade containers found on Host $2."
+  else
+    BAD "	[UPGRADE CONTAINER CHECK] Upgrade container found on Host $2 status $1."
+  fi
 }
 
 function weka_mount() {
-	if [ -z "$1" ]; then
-		GOOD "	[CHECKING WEKA MOUNT] NO Mount point on '/weka' found on Host $2."
-	else
+  if [ -z "$1" ]; then
+    GOOD "	[CHECKING WEKA MOUNT] NO Mount point on '/weka' found on Host $2."
+  else
     BAD "	[CHECKING WEKA MOUNT] Mount point on '/weka' found on Host $2."
-	fi
+  fi
 }
 
 function freespace_client() {
@@ -345,36 +340,36 @@ function freespace_client() {
     return 1
   fi
 
-	if [ "$1" -lt "$CLIENTSPACE1" ]; then
-		BAD "	[FREE SPACE CHECK] Host $3 has Less than Recommended Free Space of $(($1 / 1000))GB in $LOGSDIR1."
-		WARN "	[REDUCE TRACES CAPACITY & INCREASE DIRECTORY SIZE] https://stackoverflow.com/c/weka/questions/1785/1786#1786"
-	else
-		GOOD "	[FREE SPACE CHECK] Host $3 has Recommended Free Space of $(($1 / 1000))GB in $LOGSDIR1."
-	fi
+  if [ "$1" -lt "$CLIENTSPACE1" ]; then
+    BAD "	[FREE SPACE CHECK] Host $3 has Less than Recommended Free Space of $(($1 / 1000))GB in $LOGSDIR1."
+    WARN "	[REDUCE TRACES CAPACITY & INCREASE DIRECTORY SIZE] https://stackoverflow.com/c/weka/questions/1785/1786#1786"
+  else
+    GOOD "	[FREE SPACE CHECK] Host $3 has Recommended Free Space of $(($1 / 1000))GB in $LOGSDIR1."
+  fi
 
   if [[ "$TOTALHOSTS" -ge "$LARGE_CLUSTER" && "$2" -lt "$CLIENTSPACE2" ]]; then
     BAD "	[FREE SPACE CHECK] Host $3 has Less than Recommended Free Space of $2MB in $LOGSDIR2"
-		WARN "	[REDUCE TRACES CAPACITY & INCREASE DIRECTORY SIZE] https://stackoverflow.com/c/weka/questions/1785/1786#1786"
-	  return 1
-	fi
+    WARN "	[REDUCE TRACES CAPACITY & INCREASE DIRECTORY SIZE] https://stackoverflow.com/c/weka/questions/1785/1786#1786"
+    return 1
+  fi
 
-	if [ "$2" -lt "$CLIENTSPACEMIN" ]; then
+  if [ "$2" -lt "$CLIENTSPACEMIN" ]; then
     BAD "	[FREE SPACE CHECK] Host $3 has Less than Recommended Free Space of $2MB in $LOGSDIR2."
-		WARN "	[REDUCE TRACES CAPACITY & INCREASE DIRECTORY SIZE] https://stackoverflow.com/c/weka/questions/1785/1786#1786"
+    WARN "	[REDUCE TRACES CAPACITY & INCREASE DIRECTORY SIZE] https://stackoverflow.com/c/weka/questions/1785/1786#1786"
   else
     GOOD "	[FREE SPACE CHECK] Host $3 has Recommended Free Space of $2MB in $LOGSDIR2."
   fi
 }
 
 function client_web_test() {
-	WEBTEST=$(curl -sL -w "%{http_code}" "http://www.google.com/" -o /dev/null)
+  WEBTEST=$(curl -sL -w "%{http_code}" "http://www.google.com/" -o /dev/null)
   if [ "$WEBTEST" = 200 ]; then
-		GOOD "	[HTTP CONNECTIVITY TEST] HTTP connectivity is up."
-	elif [  "$WEBTEST" = 5 ]; then
-		WARN "	[HTTP CONNECTIVITY TEST] Blocked by Web Proxy."
-	else
-		BAD "	[HTTP CONNECTIVITY TEST] Internet access maybe down."
-	fi
+    GOOD "	[HTTP CONNECTIVITY TEST] HTTP connectivity is up."
+  elif [  "$WEBTEST" = 5 ]; then
+    WARN "	[HTTP CONNECTIVITY TEST] Blocked by Web Proxy."
+  else
+    BAD "	[HTTP CONNECTIVITY TEST] Internet access maybe down."
+  fi
 }
 
 BACKEND=$(weka cluster host --no-header -b | awk '{print $3}')
@@ -388,20 +383,20 @@ local CURHOST REMOTEDATE WEKACONSTATUS RESULTS1 RESULTS2 UPGRADECONT MOUNTWEKA
 
   weka_agent_service "$CURHOST"
 
-  REMOTEDATE=$(/usr/bin/ssh -F "$SSHCONF" "$1" "date --utc '+%s'")
+  REMOTEDATE=$($SSH "$1" "date --utc '+%s'")
   diffdate "$REMOTEDATE" "$CURHOST"
 
-  WEKACONSTATUS=$(/usr/bin/ssh -F "$SSHCONF" "$1" weka local ps --no-header -o name,running | grep -i default | awk '{print $2}')
+  WEKACONSTATUS=$($SSH "$1" weka local ps --no-header -o name,running | grep -i default | awk '{print $2}')
 	weka_container_status "$WEKACONSTATUS" "$CURHOST"
 
-  RESULTS1=$(/usr/bin/ssh -F "$SSHCONF" "$1" df -m "$LOGSDIR1" | awk '{print $4}' | tail -n +2)
-  RESULTS2=$(/usr/bin/ssh -F $"$SSHCONF" "$1" df -m "$LOGSDIR2" | awk '{print $4}' | tail -n +2)
+  RESULTS1=$($SSH "$1" df -m "$LOGSDIR1" | awk '{print $4}' | tail -n +2)
+  RESULTS2=$($SSH "$1" df -m "$LOGSDIR2" | awk '{print $4}' | tail -n +2)
 	freespace_backend "$RESULTS1" "$RESULTS2" "$CURHOST" || return
 
-  UPGRADECONT=$(/usr/bin/ssh -F "$SSHCONF" "$1" "weka local ps --no-header -o name,running | awk '/upgrade/ {print $2}'")
+  UPGRADECONT=$($SSH "$1" "weka local ps --no-header -o name,running | awk '/upgrade/ {print $2}'")
 	upgrade_container "$UPGRADECONT" "$CURHOST"
 
-  MOUNTWEKA=$(/usr/bin/ssh -F "$SSHCONF" "$1" "mountpoint -qd /weka/")
+  MOUNTWEKA=$($SSH "$1" "mountpoint -qd /weka/")
 	weka_mount "$MOUNTWEKA" "$CURHOST"
 }
 
@@ -413,22 +408,22 @@ function clientloop() {
 
     weka_agent_service "$CURHOST"
 
-    REMOTEDATE=$(/usr/bin/ssh -F "$SSHCONF" "$1" "date --utc '+%s'")
+    REMOTEDATE=$($SSH "$1" "date --utc '+%s'")
     diffdate "$REMOTEDATE" "$CURHOST"
 
-    WEKACONSTATUS=$(/usr/bin/ssh -F "$SSHCONF" "$1" weka local ps --no-header -o name,running | grep -i client | awk '{print $2}')
+    WEKACONSTATUS=$($SSH "$1" weka local ps --no-header -o name,running | grep -i client | awk '{print $2}')
 	  weka_container_status "$WEKACONSTATUS" "$CURHOST"
 
-    RESULTS1=$(/usr/bin/ssh -F "$SSHCONF" "$1" df -m "$LOGSDIR1" | awk '{print $4}' | tail -n +2)
-    RESULTS2=$(/usr/bin/ssh -F $"$SSHCONF" "$1" df -m "$LOGSDIR2" | awk '{print $4}' | tail -n +2)
+    RESULTS1=$($SSH "$1" df -m "$LOGSDIR1" | awk '{print $4}' | tail -n +2)
+    RESULTS2=$($SSH "$1" df -m "$LOGSDIR2" | awk '{print $4}' | tail -n +2)
 	  freespace_client "$RESULTS1" "$RESULTS2" "$CURHOST" || return
 
 	  client_web_test
 
-    UPGRADECONT=$(/usr/bin/ssh -F "$SSHCONF" "$1" "weka local ps --no-header -o name,running | awk '/upgrade/ {print $2}'")
+    UPGRADECONT=$($SSH "$1" "weka local ps --no-header -o name,running | awk '/upgrade/ {print $2}'")
 	  upgrade_container "$UPGRADECONT" "$CURHOST"
 
-    MOUNTWEKA=$(/usr/bin/ssh -F "$SSHCONF" "$1" "mountpoint -qd /weka/")
+    MOUNTWEKA=$($SSH "$1" "mountpoint -qd /weka/")
 	  weka_mount "$MOUNTWEKA" "$CURHOST"
 }
 
