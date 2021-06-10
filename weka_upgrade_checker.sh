@@ -41,17 +41,17 @@ exit
 while getopts ":ashr:" opt; do
         case ${opt} in
           a ) AWS=1
-					;;
+	  ;;
           s ) SKPCL=true
           ;;
           r ) RHOST=${OPTARG}
           shift
           ;;
           h ) usage
-					;;
+	  ;;
           * ) echo "Invalid Option Try Again!"
 	     usage
-	     		;;
+	  ;;
         esac
 done
 
