@@ -401,30 +401,30 @@ local CURHOST REMOTEDATE WEKACONSTATUS RESULTS1 RESULTS2 UPGRADECONT MOUNTWEKA
 }
 
 function clientloop() {
-  local CURHOST REMOTEDATE WEKACONSTATUS RESULTS1 RESULTS2 UPGRADECONT MOUNTWEKA
-    CURHOST=$(weka cluster host --no-header -o hostname,ips | grep -w "$1" | awk '{print $1}')
-    NOTICE "VERIFYING SETTINGS ON CLIENTs HOST $CURHOST"
-	  check_ssh_connectivity "$1" "$CURHOST" || return
+local CURHOST REMOTEDATE WEKACONSTATUS RESULTS1 RESULTS2 UPGRADECONT MOUNTWEKA
+  CURHOST=$(weka cluster host --no-header -o hostname,ips | grep -w "$1" | awk '{print $1}')
+  NOTICE "VERIFYING SETTINGS ON CLIENTs HOST $CURHOST"
+	check_ssh_connectivity "$1" "$CURHOST" || return
 
-    weka_agent_service "$CURHOST"
+  weka_agent_service "$CURHOST"
 
-    REMOTEDATE=$($SSH "$1" "date --utc '+%s'")
-    diffdate "$REMOTEDATE" "$CURHOST"
+  REMOTEDATE=$($SSH "$1" "date --utc '+%s'")
+  diffdate "$REMOTEDATE" "$CURHOST"
 
-    WEKACONSTATUS=$($SSH "$1" weka local ps --no-header -o name,running | grep -i client | awk '{print $2}')
-	  weka_container_status "$WEKACONSTATUS" "$CURHOST"
+  WEKACONSTATUS=$($SSH "$1" weka local ps --no-header -o name,running | grep -i client | awk '{print $2}')
+	weka_container_status "$WEKACONSTATUS" "$CURHOST"
 
-    RESULTS1=$($SSH "$1" df -m "$LOGSDIR1" | awk '{print $4}' | tail -n +2)
-    RESULTS2=$($SSH "$1" df -m "$LOGSDIR2" | awk '{print $4}' | tail -n +2)
-	  freespace_client "$RESULTS1" "$RESULTS2" "$CURHOST" || return
+  RESULTS1=$($SSH "$1" df -m "$LOGSDIR1" | awk '{print $4}' | tail -n +2)
+  RESULTS2=$($SSH "$1" df -m "$LOGSDIR2" | awk '{print $4}' | tail -n +2)
+	freespace_client "$RESULTS1" "$RESULTS2" "$CURHOST" || return
 
-	  client_web_test
+	client_web_test
 
-    UPGRADECONT=$($SSH "$1" "weka local ps --no-header -o name,running | awk '/upgrade/ {print $2}'")
-	  upgrade_container "$UPGRADECONT" "$CURHOST"
+  UPGRADECONT=$($SSH "$1" "weka local ps --no-header -o name,running | awk '/upgrade/ {print $2}'")
+	upgrade_container "$UPGRADECONT" "$CURHOST"
 
     MOUNTWEKA=$($SSH "$1" "mountpoint -qd /weka/")
-	  weka_mount "$MOUNTWEKA" "$CURHOST"
+	weka_mount "$MOUNTWEKA" "$CURHOST"
 }
 
 main() {
