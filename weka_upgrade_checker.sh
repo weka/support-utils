@@ -140,15 +140,6 @@ if [ -z "$AWS" ]; then
 	fi
 fi
 
-NOTICE "WEKA USER LOGIN TEST"
-WEKALOGIN=$(weka cluster nodes 2>&1 | awk '/error:/ {print $1}')
-if [ "$WEKALOGIN" == "error:" ]; then
-  BAD "Please login using weka user login first, cannot continue."
-  exit 1
-else
-  GOOD "Weka user login successful."
-fi
-
 NOTICE "VERIFYING WEKA AGENT"
 WEKAVERIFY=$(lsmod | grep -i weka)
 if [ -z "$WEKAVERIFY" ]; then
@@ -157,6 +148,15 @@ if [ -z "$WEKAVERIFY" ]; then
 else
 	WEKAERSION=$(weka status -J | awk '/"release":/ {print $2}' | tr -d ',""')
   GOOD "Weka verified $WEKAERSION."
+fi
+
+NOTICE "WEKA USER LOGIN TEST"
+WEKALOGIN=$(weka cluster nodes 2>&1 | awk '/error:/ {print $1}')
+if [ "$WEKALOGIN" == "error:" ]; then
+  BAD "Please login using weka user login first, cannot continue."
+  exit 1
+else
+  GOOD "Weka user login successful."
 fi
 
 NOTICE "WEKA IDENTIFIED"
