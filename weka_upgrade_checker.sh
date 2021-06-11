@@ -55,7 +55,7 @@ done
 
 shift $((OPTIND -1))
 
-if [ -z $AWS ]; then
+if [ ! -z $AWS ]; then
 cat > $SSHCONF <<EOF
 BatchMode yes
 Compression yes
