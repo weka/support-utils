@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-#version=1.0.1
+#version=1.0.2
 
 # Colors
 export NOCOLOR="\033[0m"
@@ -231,6 +231,15 @@ else
   WEKASNAP=$(weka fs snapshot --no-header -o name,stow,object)
 	BAD "Following snapshots are being uploaded."
 	WARN "\n$WEKASNAP\n"
+fi
+
+NOTICE "VERIFYING NO SMALL WEKA FILE SYSTEMS EXISTS"
+SMALLFS=$(weka fs -o name,availableSSD -R | awk '$3< 1073741824')
+if [ -z "$SMALLFS" ]; then
+  GOOD "No small Weka file system exit."
+else
+  BAD "Following small file systems identified, minimum size must be increased to 1GB."
+	WARN "\n$SMALLFS\n"
 fi
 
 function check_ssh_connectivity() {
