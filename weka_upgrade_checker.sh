@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-#version=1.0.2
+#version=1.0.3
 
 # Colors
 export NOCOLOR="\033[0m"
@@ -252,17 +252,12 @@ function check_ssh_connectivity() {
 }
 
 function weka_agent_service() {
-  if [ -z "$AWS" ]; then
-    WEKAAGENTSRV=$(systemctl is-active weka-agent)
-  else
-    WEKAAGENTSRV=$(sudo service weka-agent status | cut -d' ' -f3)
-  fi
-
-  if [[ "$WEKAAGENTSRV" == "active" || "$WEKAAGENTSRV" == "RUNNING" ]]; then
-		GOOD "	[WEKA AGENT SERVICE] Weka Agent Serivce is running on host $1"
-	else
-		BAD "	[WEKA AGENT SERVICE] Weka Agent Serivce is NOT running on host $1"
-	fi
+WEKAAGENTSRV=$(sudo service weka-agent status | cut -d' ' -f3)
+if [[ "$WEKAAGENTSRV" == "active" || "$WEKAAGENTSRV" == "RUNNING" ]]; then
+	GOOD "	[WEKA AGENT SERVICE] Weka Agent Serivce is running on host $1"
+else
+	BAD "	[WEKA AGENT SERVICE] Weka Agent Serivce is NOT running on host $1"
+fi
 }
 
 function diffdate() {
