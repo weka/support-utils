@@ -355,11 +355,11 @@ function weka_mount() {
 
 # Check for any invalid IP addresses in Weka resources. See https://wekaio.atlassian.net/wiki/spaces/MGMT/pages/1503330580/Cleaning+up+backend+IPs+on+systems+upgraded+to+3.8
 function weka_ip_cleanup() {
-  if [ -z "$1" ]; then
-    if [[ ! $XCEPT ]] ; then GOOD "	[CHECKING IP WEKA RESOURCES] NO invalid IP addresses found in Weka resources on Host $2."
+  if [ "$1" -eq 0 ]; then
+    if [[ ! $XCEPT ]] ; then GOOD "	[CHECKING IP WEKA RESOURCES] $1 invalid IP addresses found in Weka resources on Host $2."
     fi
   else
-    BAD "	[CHECKING IP WEKA RESOURCES] Invalid IP addresses in weka resources found on Host $2. Need to run update_backend_ips.py on this backend"
+    BAD "	[CHECKING IP WEKA RESOURCES] $1 Invalid IP addresses in weka resources found on Host $2. Need to run update_backend_ips.py on this backend"
   fi
 }
 
@@ -443,7 +443,7 @@ local CURHOST REMOTEDATE WEKACONSTATUS RESULTS1 RESULTS2 UPGRADECONT MOUNTWEKA
   MOUNTWEKA=$($SSH "$1" "mountpoint -qd /weka/")
 	weka_mount "$MOUNTWEKA" "$CURHOST"
 
-  IPCLEANUP=$($SSH "$1" "weka local resources -J 2>/dev/null | grep 0.0.0.0")
+  IPCLEANUP=$($SSH "$1" "weka local resources -J 2>/dev/null | grep -c 0.0.0.0")
 	weka_ip_cleanup "$IPCLEANUP" "$CURHOST"
 
   SMBCHECK=$($SSH "$1" "weka local ps 2>/dev/null | grep samba")
