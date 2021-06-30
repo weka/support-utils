@@ -360,6 +360,7 @@ function weka_ip_cleanup() {
     fi
   else
     BAD "	[CHECKING IP WEKA RESOURCES] $1 Invalid IP addresses in weka resources found on Host $2. Need to run update_backend_ips.py on this backend"
+    WARN "	[CHECKING IP WEKA RESOURCES] https://wekaio.atlassian.net/wiki/spaces/MGMT/pages/1503330580/Cleaning+up+backend+IPs+on+systems+upgraded+to+3.8"
   fi
 }
 
