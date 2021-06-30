@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-#version=1.0.5
+#version=1.0.6
 
 # Colors
 export NOCOLOR="\033[0m"
@@ -213,17 +213,17 @@ WEKACLIENT=$(weka cluster host --no-header -c | grep -v UP)
 if [ -z "$WEKACLIENT" ]; then
   GOOD "Verified all client's are up."
 else
-  WEKACLIENT=$(weka cluster host -o id,hostname,status,mode -c | grep -v UP)
+  WEKACLIENT=$(weka cluster host -o id,hostname,status -c | grep -v UP)
 	BAD "Failed WEKA clients detected."
 	WARN "\n$WEKACLIENT\n"
 fi
 
 NOTICE "VERIFYING WEKA NODES STATUS"
-WEKANODES=$(weka cluster nodes | grep -v UP)
+WEKANODES=$(weka cluster nodes --no-header | grep -v UP)
 if [ -z "$WEKANODES" ]; then
   GOOD "Weka Nodes Status OK."
 else
-  WEKANODES=$(weka cluster nodes -o host,ips,status,role,mode | grep -v UP)
+  WEKANODES=$(weka cluster nodes -o host,ips,status,role | grep -v UP)
 	BAD "Failed Weka Nodes Found."
 	WARN "\n$WEKANODES\n"
 fi
@@ -239,7 +239,7 @@ else
 fi
 
 NOTICE "VERIFYING NO SMALL WEKA FILE SYSTEMS EXISTS"
-SMALLFS=$(weka fs -o name,availableSSD -R | awk '$3< 1073741824')
+SMALLFS=$(weka fs -o name,availableSSD -R --no-header | awk '$3< 1073741824')
 if [ -z "$SMALLFS" ]; then
   GOOD "No small Weka file system exit."
 else
@@ -478,22 +478,23 @@ local CURHOST REMOTEDATE WEKACONSTATUS RESULTS1 RESULTS2 UPGRADECONT MOUNTWEKA
 }
 
 main() {
-KHOST=$(weka cluster host -o ips,mode | grep -w "$RHOST" | awk '{print $2}')
+# Just gather IPs of backends
+KHOST=$(weka cluster host -o ips -b --no-header | awk -F, '{print $1}')
 if [ -z "$KHOST" ]; then
   BAD "IP Address invalid, enter an ip address of a known Weka client or host."
   exit 1
-elif [[ "$RHOST" && "$KHOST" == "backend" ]]; then
+elif [[ "$RHOST" && "$KHOST" ]]; then
   for ip in ${KHOST}; do
     backendloop "$RHOST" || continue
   done
   exit
 fi
 
-KHOST=$(weka cluster host -o ips,mode | grep -w "$RHOST" | awk '{print $2}')
+# Just gather IPs of client
+KHOST=$(weka cluster host -o ips -c --no-header | awk -F, '{print $1}')
 if [ -z "$KHOST" ]; then
-  BAD "IP Address invalid, enter an ip address of a known Weka client or host."
-  exit 1
-elif [[ "$RHOST" && "$KHOST" == "client" ]]; then
+  WARN "Doesn't seem to be any clients known to Weka."
+elif [[ "$RHOST" && "$KHOST" ]]; then
   for ip in ${KHOST}; do
     clientloop "$RHOST" || continue
   done
