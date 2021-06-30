@@ -374,8 +374,6 @@ function smb_check() {
   fi
 }
 
-
-
 function freespace_client() {
   if [ -z "$1" ]; then
     BAD "	[FREE SPACE CHECK] Unable to Determine Free Space on Host $3."
@@ -474,7 +472,7 @@ local CURHOST REMOTEDATE WEKACONSTATUS RESULTS1 RESULTS2 UPGRADECONT MOUNTWEKA
   UPGRADECONT=$($SSH "$1" "weka local ps --no-header -o name,running | awk '/upgrade/ {print $2}'")
 	upgrade_container "$UPGRADECONT" "$CURHOST"
 
-    MOUNTWEKA=$($SSH "$1" "mountpoint -qd /weka/")
+  MOUNTWEKA=$($SSH "$1" "mountpoint -qd /weka/")
 	weka_mount "$MOUNTWEKA" "$CURHOST"
 }
 
