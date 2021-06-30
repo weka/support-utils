@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-#version=1.0.4
+#version=1.0.5
 
 # Colors
 export NOCOLOR="\033[0m"
@@ -333,6 +333,7 @@ function freespace_backend() {
   fi
 }
 
+# Check for any upgrade container, these should be removed before upgrading if found.
 function upgrade_container() {
   if [ -z "$1" ]; then
     if [[ ! $XCEPT ]] ; then GOOD "	[UPGRADE CONTAINER CHECK] No upgrade containers found on Host $2."
@@ -342,6 +343,7 @@ function upgrade_container() {
   fi
 }
 
+# Check for any Weka filesystems mountd on /weka
 function weka_mount() {
   if [ -z "$1" ]; then
     if [[ ! $XCEPT ]] ; then GOOD "	[CHECKING WEKA MOUNT] NO Mount point on '/weka' found on Host $2."
@@ -350,6 +352,28 @@ function weka_mount() {
     BAD "	[CHECKING WEKA MOUNT] Mount point on '/weka' found on Host $2."
   fi
 }
+
+# Check for any invalid IP addresses in Weka resources. See https://wekaio.atlassian.net/wiki/spaces/MGMT/pages/1503330580/Cleaning+up+backend+IPs+on+systems+upgraded+to+3.8
+function weka_ip_cleanup() {
+  if [ -z "$1" ]; then
+    if [[ ! $XCEPT ]] ; then GOOD "	[CHECKING IP WEKA RESOURCES] NO invalid IP addresses found in Weka resources on Host $2."
+    fi
+  else
+    BAD "	[CHECKING IP WEKA RESOURCES] Invalid IP addresses in weka resources found on Host $2. Need to run update_backend_ips.py on this backend"
+  fi
+}
+
+# Check for any SMB containers, these may need stopping BEFORE upgrade.
+function smb_check() {
+  if [ -z "$1" ]; then
+    if [[ ! $XCEPT ]] ; then GOOD "	[CHECKING SMB RESOURCES] NO SMB containeres found on Host $2."
+    fi
+  else
+    WARN "	[CHECKING SMB RESOURCES] Found SMB resources on Host $2. Recommend stopping SMB container before upgrade on this backend."
+  fi
+}
+
+
 
 function freespace_client() {
   if [ -z "$1" ]; then
@@ -418,6 +442,12 @@ local CURHOST REMOTEDATE WEKACONSTATUS RESULTS1 RESULTS2 UPGRADECONT MOUNTWEKA
 
   MOUNTWEKA=$($SSH "$1" "mountpoint -qd /weka/")
 	weka_mount "$MOUNTWEKA" "$CURHOST"
+
+  IPCLEANUP=$($SSH "$1" "weka local resources -J 2>/dev/null | grep 0.0.0.0")
+	weka_ip_cleanup "$IPCLEANUP" "$CURHOST"
+
+  SMBCHECK=$($SSH "$1" "weka local ps 2>/dev/null | grep samba")
+	smb_check "$SMBCHECK" "$CURHOST"
 }
 
 function clientloop() {
