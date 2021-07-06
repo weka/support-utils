@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-#version=1.0.7
+#version=1.0.8
 
 # Colors
 export NOCOLOR="\033[0m"
@@ -442,7 +442,11 @@ local CURHOST REMOTEDATE WEKACONSTATUS RESULTS1 RESULTS2 UPGRADECONT MOUNTWEKA
   MOUNTWEKA=$($SSH "$1" "mountpoint -qd /weka/")
 	weka_mount "$MOUNTWEKA" "$CURHOST"
 
-  IPCLEANUP=$($SSH "$1" "weka local resources -J 2>/dev/null | grep -c 0.0.0.0")
+  if [ ! -z $AWS ]; then
+  IPCLEANUP=$($SSH "$1" "sudo weka local resources -J | grep -c 0.0.0.0")
+  else
+  IPCLEANUP=$($SSH "$1" "weka local resources -J | grep -c 0.0.0.0")
+  fi
 	weka_ip_cleanup "$IPCLEANUP" "$CURHOST"
 
   SMBCHECK=$($SSH "$1" "weka local ps 2>/dev/null | grep samba")
