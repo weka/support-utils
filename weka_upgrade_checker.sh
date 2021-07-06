@@ -151,7 +151,7 @@ if [ -z "$WEKAVERIFY" ]; then
   BAD "Weka is NOT installed on host or the container is down, cannot continue."
   exit 1
 else
-	WEKAERSION=$(weka status -J | awk '/"release":/ {print $2}' | tr -d ',""')
+WEKAERSION=$(weka status -J | awk '/"release":/ {print $2}' | tr -d ',""')
   GOOD "Weka verified $WEKAERSION."
 fi
 
@@ -165,8 +165,8 @@ else
 fi
 
 NOTICE "WEKA IDENTIFIED"
-CLUSTER=$(weka status | grep cluster | awk '{print $2}')
-UUID=$(weka status | grep cluster | awk '{print $3}')
+CLUSTER=$(weka status | grep cluster | awk 'NR==1 {print $2}')
+UUID=$(weka status | grep cluster | awk 'NR==1 {print $3}')
 CLUSTERSTATUS=$(weka status | grep status | head -n -1 | cut -d':' -f2)
 IOSTATUS=$(weka status | grep status | tail -n +2 | cut -d':' -f2)
 GOOD "Working on CLUSTER: $CLUSTER UUID: $UUID STATUS:${CLUSTERSTATUS}${IOSTATUS}."
