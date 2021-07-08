@@ -415,8 +415,8 @@ function client_web_test() {
   fi
 }
 
-BACKEND=$(weka cluster host --no-header -b | awk '{print $3}' | tr -d ',""')
-CLIENT=$(weka cluster host --no-header -c | awk '{print $3}' | tr -d ',""')
+BACKEND=$(weka cluster host -b --no-header -o ips | awk '{print $1}' | tr -d ',""')
+CLIENT=$(weka cluster host -c --no-header -o ips | awk '{print $1}' | tr -d ',""')
 
 function backendloop() {
 local CURHOST REMOTEDATE WEKACONSTATUS RESULTS1 RESULTS2 UPGRADECONT MOUNTWEKA
