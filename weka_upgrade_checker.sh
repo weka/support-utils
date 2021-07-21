@@ -445,7 +445,7 @@ local CURHOST REMOTEDATE WEKACONSTATUS RESULTS1 RESULTS2 UPGRADECONT MOUNTWEKA
   if [ ! -z $AWS ]; then
   IPCLEANUP=$($SSH "$1" "sudo weka local resources -J | grep -c 0.0.0.0")
   else
-  IPCLEANUP=$($SSH "$1" "weka local resources -J | grep -c 0.0.0.0")
+  IPCLEANUP=$($SSH "$1" "weka local resources -J | grep -c '0\.0\.0\.0'")
   fi
 	weka_ip_cleanup "$IPCLEANUP" "$CURHOST"
 
