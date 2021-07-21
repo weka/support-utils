@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-#version=1.0.9
+#version=1.0.10
 
 # Colors
 export NOCOLOR="\033[0m"
