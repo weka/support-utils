@@ -367,7 +367,7 @@ function weka_ip_cleanup() {
 # Check for any SMB containers, these may need stopping BEFORE upgrade.
 function smb_check() {
   if [ -z "$1" ]; then
-    if [[ ! $XCEPT ]] ; then GOOD "	[CHECKING SMB RESOURCES] NO SMB containeres found on Host $2."
+    if [[ ! $XCEPT ]] ; then GOOD "	[CHECKING SMB RESOURCES] NO SMB containers found on Host $2."
     fi
   else
     WARN "	[CHECKING SMB RESOURCES] Found SMB resources on Host $2. Recommend stopping SMB container before upgrade on this backend."
