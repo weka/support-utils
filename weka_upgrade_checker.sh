@@ -481,6 +481,7 @@ local CURHOST REMOTEDATE WEKACONSTATUS RESULTS1 RESULTS2 UPGRADECONT MOUNTWEKA
 }
 
 main() {
+# this is for the -r flag usage.
 KHOST=$(weka cluster host -o ips,mode | grep -w "$RHOST" | awk '{print $2}')
 if [ -z "$KHOST" ]; then
   BAD "IP Address invalid, enter an ip address of a known Weka client or host."
@@ -492,7 +493,6 @@ elif [[ "$RHOST" && "$KHOST" == "backend" ]]; then
   exit
 fi
 
-KHOST=$(weka cluster host -o ips,mode | grep -w "$RHOST" | awk '{print $2}')
 if [ -z "$KHOST" ]; then
   BAD "IP Address invalid, enter an ip address of a known Weka client or host."
   exit 1
