@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-#version=1.0.10
+#version=1.0.11
 
 # Colors
 export NOCOLOR="\033[0m"
@@ -481,23 +481,22 @@ local CURHOST REMOTEDATE WEKACONSTATUS RESULTS1 RESULTS2 UPGRADECONT MOUNTWEKA
 }
 
 main() {
-# Just gather IPs of backends
-KHOST=$(weka cluster host -o ips -b --no-header | awk -F, '{print $1}')
+KHOST=$(weka cluster host -o ips,mode | grep -w "$RHOST" | awk '{print $2}')
 if [ -z "$KHOST" ]; then
   BAD "IP Address invalid, enter an ip address of a known Weka client or host."
   exit 1
-elif [[ "$RHOST" && "$KHOST" ]]; then
+elif [[ "$RHOST" && "$KHOST" == "backend" ]]; then
   for ip in ${KHOST}; do
     backendloop "$RHOST" || continue
   done
   exit
 fi
 
-# Just gather IPs of client
-KHOST=$(weka cluster host -o ips -c --no-header | awk -F, '{print $1}')
+KHOST=$(weka cluster host -o ips,mode | grep -w "$RHOST" | awk '{print $2}')
 if [ -z "$KHOST" ]; then
-  WARN "Doesn't seem to be any clients known to Weka."
-elif [[ "$RHOST" && "$KHOST" ]]; then
+  BAD "IP Address invalid, enter an ip address of a known Weka client or host."
+  exit 1
+elif [[ "$RHOST" && "$KHOST" == "client" ]]; then
   for ip in ${KHOST}; do
     clientloop "$RHOST" || continue
   done
