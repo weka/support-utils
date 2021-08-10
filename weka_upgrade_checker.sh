@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-#version=1.0.11
+#version=1.0.12
 
 # Colors
 export NOCOLOR="\033[0m"
@@ -415,8 +415,8 @@ function client_web_test() {
   fi
 }
 
-BACKEND=$(weka cluster host -b --no-header -o ips | awk '{print $1}' | tr -d ',""')
-CLIENT=$(weka cluster host -c --no-header -o ips | awk '{print $1}' | tr -d ',""')
+BACKEND=$(weka cluster host -b --no-header -o ips | awk -F, '{print $1}')
+CLIENT=$(weka cluster host -c --no-header -o ips | awk -F, '{print $1}')
 
 function backendloop() {
 local CURHOST REMOTEDATE WEKACONSTATUS RESULTS1 RESULTS2 UPGRADECONT MOUNTWEKA
