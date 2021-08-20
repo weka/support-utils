@@ -253,7 +253,7 @@ fi
 if [[ "$MAJOR" -eq 3 ]] && [[ "$WEKAMINOR1" -eq 12 ]] && [[ "$WEKAMINOR2" -ge 2 ]]; then
   NOTICE "VERIFYING RAID REDUCTION SETTINGS"
   weka local run /weka/cfgdump > $DIR/cfgdump.txt 
-   if [ $? -eq 0 ]; then
+  if [ $? -eq 0 ]; then
     RAID=$(awk '/clusterInfo/{f=1} f && /reserved/ {getline ; getline ; print ($0+0); exit}' $DIR/cfgdump.txt)
       if [ $RAID -eq 1 ]; then  
         GOOD "Raid Reduction enabled." 
