@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-#version=1.0.13
+#version=1.0.14
 
 # Colors
 export NOCOLOR="\033[0m"
@@ -263,6 +263,15 @@ if [[ "$MAJOR" -eq 3 ]] && [[ "$WEKAMINOR1" -eq 12 ]] && [[ "$WEKAMINOR2" -ge 2 
   else
     BAD "Unable to verify Raid Reduction settings."
   fi
+fi
+
+NOTICE "VERIFYING SSD FIRMWARE"
+SSD=$(weka cluster drive -o uuid,hostname,vendor,firmware,model | grep -i EDB5002Q)
+if [ -z "$SSD" ]; then
+  GOOD "SSD Firmware check completed."
+else
+  BAD "The following SSDs might be problematic contact support."
+  WARN "\n$SSD\n"
 fi
 
 function check_ssh_connectivity() {
