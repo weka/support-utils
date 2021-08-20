@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-#version=1.0.12
+#version=1.0.13
 
 # Colors
 export NOCOLOR="\033[0m"
@@ -152,6 +152,9 @@ if [ -z "$WEKAVERIFY" ]; then
   exit 1
 else
 WEKAERSION=$(weka status -J | awk '/"release":/ {print $2}' | tr -d ',""')
+MAJOR=$(weka status -J | awk '/"release":/ {print $2}' | tr -d ',""' | cut -d "." -f1)
+WEKAMINOR1=$(weka status -J | awk '/"release":/ {print $2}' | tr -d ',""' | cut -d "." -f2)
+WEKAMINOR2=$(weka status -J | awk '/"release":/ {print $2}' | tr -d ',""' | cut -d "." -f3)
   GOOD "Weka verified $WEKAERSION."
 fi
 
@@ -245,6 +248,21 @@ if [ -z "$SMALLFS" ]; then
 else
   BAD "Following small file systems identified, minimum size must be increased to 1GB."
 	WARN "\n$SMALLFS\n"
+fi
+
+if [[ "$MAJOR" -eq 3 ]] && [[ "$WEKAMINOR1" -eq 12 ]] && [[ "$WEKAMINOR2" -ge 2 ]]; then
+  NOTICE "VERIFYING RAID REDUCTION SETTINGS"
+  weka local run /weka/cfgdump > $DIR/cfgdump.txt 
+   if [ $? -eq 0 ]; then
+    RAID=$(awk '/clusterInfo/{f=1} f && /reserved/ {getline ; getline ; print ($0+0); exit}' $DIR/cfgdump.txt)
+      if [ $RAID -eq 1 ]; then  
+        GOOD "Raid Reduction enabled." 
+      else
+        BAD "Raid Reduction is NOT enabled issue command weka debug jrpc config_override_key key='clusterInfo.reserved[1]' value=1."
+      fi
+  else
+    BAD "Unable to verify Raid Reduction settings."
+  fi
 fi
 
 function check_ssh_connectivity() {
