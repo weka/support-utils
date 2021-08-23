@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-#version=1.0.14
+#version=1.0.15
 
 # Colors
 export NOCOLOR="\033[0m"
@@ -253,7 +253,7 @@ fi
 if [[ "$MAJOR" -eq 3 ]] && [[ "$WEKAMINOR1" -eq 12 ]] && [[ "$WEKAMINOR2" -ge 2 ]]; then
   NOTICE "VERIFYING RAID REDUCTION SETTINGS"
   weka local run /weka/cfgdump > $DIR/cfgdump.txt 
-   if [ $? -eq 0 ]; then
+  if [ $? -eq 0 ]; then
     RAID=$(awk '/clusterInfo/{f=1} f && /reserved/ {getline ; getline ; print ($0+0); exit}' $DIR/cfgdump.txt)
       if [ $RAID -eq 1 ]; then  
         GOOD "Raid Reduction enabled." 
@@ -285,8 +285,8 @@ function check_ssh_connectivity() {
 }
 
 function weka_agent_service() {
-WEKAAGENTSRV=$(sudo service weka-agent status | cut -d' ' -f3)
-if [[ "$WEKAAGENTSRV" == "active" || "$WEKAAGENTSRV" == "RUNNING" ]]; then
+WEKAAGENTSRV=$(sudo systemctl is-active weka-agent.service)
+if [ "$WEKAAGENTSRV" == "active" ]; then
 	if [[ ! $XCEPT ]] ; then GOOD "	[WEKA AGENT SERVICE] Weka Agent Serivce is running on host $1"
         fi
 else
