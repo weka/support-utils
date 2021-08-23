@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-#version=1.0.14
+#version=1.0.15
 
 # Colors
 export NOCOLOR="\033[0m"
@@ -285,8 +285,8 @@ function check_ssh_connectivity() {
 }
 
 function weka_agent_service() {
-WEKAAGENTSRV=$(sudo service weka-agent status | cut -d' ' -f3)
-if [[ "$WEKAAGENTSRV" == "active" || "$WEKAAGENTSRV" == "RUNNING" ]]; then
+WEKAAGENTSRV=$(sudo systemctl is-active weka-agent.service)
+if [ "$WEKAAGENTSRV" == "active" ]; then
 	if [[ ! $XCEPT ]] ; then GOOD "	[WEKA AGENT SERVICE] Weka Agent Serivce is running on host $1"
         fi
 else
