@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-#version=1.0.15
+#version=1.0.16
 
 # Colors
 export NOCOLOR="\033[0m"
@@ -232,11 +232,15 @@ else
 fi
 
 NOTICE "VERIFYING WEKA FS SNAPSHOTS UPLOAD STATUS"
-WEKASNAP=$(weka fs snapshot --no-header -o stow,object | grep -i upload)
+if [[ "$MAJOR" -eq 3 ]] && [[ "$WEKAMINOR1" -eq 12 ]]; then
+  WEKASNAP=$(weka fs snapshot -o id,name,remote_object_status,remote_object_progress | grep -i upload)
+else
+  WEKASNAP=$(weka fs snapshot --no-header -o name,stow,object | grep -i upload)
+fi
+
 if [ -z "$WEKASNAP" ]; then
   GOOD "Weka snapshot upload status ok."
 else
-  WEKASNAP=$(weka fs snapshot --no-header -o name,stow,object)
 	BAD "Following snapshots are being uploaded."
 	WARN "\n$WEKASNAP\n"
 fi
