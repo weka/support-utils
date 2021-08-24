@@ -265,7 +265,7 @@ if [[ "$MAJOR" -eq 3 ]] && [[ "$WEKAMINOR1" -eq 12 ]] && [[ "$WEKAMINOR2" -ge 2 
         BAD "Raid Reduction is NOT enabled issue command weka debug jrpc config_override_key key='clusterInfo.reserved[1]' value=1."
       fi
   else
-    BAD "Unable to verify Raid Reduction settings."
+    WARN "Unable to verify Raid Reduction settings."
   fi
 fi
 
