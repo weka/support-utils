@@ -232,7 +232,7 @@ else
 fi
 
 NOTICE "VERIFYING WEKA FS SNAPSHOTS UPLOAD STATUS"
-if [[ "$MAJOR" -eq 3 ]] && [[ "$WEKAMINOR1" -eq 12 ]]; then
+if [[ "$MAJOR" -eq 3 ]] && [[ "$WEKAMINOR1" -ge 12 ]]; then
   WEKASNAP=$(weka fs snapshot -o id,name,remote_object_status,remote_object_progress | grep -i upload)
 else
   WEKASNAP=$(weka fs snapshot --no-header -o name,stow,object | grep -i upload)
