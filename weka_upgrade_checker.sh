@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-#version=1.0.15
+#version=1.0.17
 
 # Colors
 export NOCOLOR="\033[0m"
@@ -151,10 +151,10 @@ if [ -z "$WEKAVERIFY" ]; then
   BAD "Weka is NOT installed on host or the container is down, cannot continue."
   exit 1
 else
-WEKAERSION=$(weka status -J | awk '/"release":/ {print $2}' | tr -d ',""')
-MAJOR=$(weka status -J | awk '/"release":/ {print $2}' | tr -d ',""' | cut -d "." -f1)
-WEKAMINOR1=$(weka status -J | awk '/"release":/ {print $2}' | tr -d ',""' | cut -d "." -f2)
-WEKAMINOR2=$(weka status -J | awk '/"release":/ {print $2}' | tr -d ',""' | cut -d "." -f3)
+WEKAERSION=$(weka version current)
+MAJOR=$(weka version current | cut -d "." -f1)
+WEKAMINOR1=$(weka version current | cut -d "." -f2)
+WEKAMINOR2=$(weka version current | cut -d "." -f3)
   GOOD "Weka verified $WEKAERSION."
 fi
 
@@ -232,11 +232,15 @@ else
 fi
 
 NOTICE "VERIFYING WEKA FS SNAPSHOTS UPLOAD STATUS"
-WEKASNAP=$(weka fs snapshot --no-header -o stow,object | grep -i upload)
+if [[ "$MAJOR" -eq 3 ]] && [[ "$WEKAMINOR1" -eq 12 ]]; then
+  WEKASNAP=$(weka fs snapshot -o id,name,remote_object_status,remote_object_progress | grep -i upload)
+else
+  WEKASNAP=$(weka fs snapshot --no-header -o name,stow,object | grep -i upload)
+fi
+
 if [ -z "$WEKASNAP" ]; then
   GOOD "Weka snapshot upload status ok."
 else
-  WEKASNAP=$(weka fs snapshot --no-header -o name,stow,object)
 	BAD "Following snapshots are being uploaded."
 	WARN "\n$WEKASNAP\n"
 fi
@@ -261,7 +265,7 @@ if [[ "$MAJOR" -eq 3 ]] && [[ "$WEKAMINOR1" -eq 12 ]] && [[ "$WEKAMINOR2" -ge 2 
         BAD "Raid Reduction is NOT enabled issue command weka debug jrpc config_override_key key='clusterInfo.reserved[1]' value=1."
       fi
   else
-    BAD "Unable to verify Raid Reduction settings."
+    WARN "Unable to verify Raid Reduction settings."
   fi
 fi
 
