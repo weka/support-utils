@@ -80,27 +80,27 @@ else
 fi
 
 function logit() {
-	echo -e "[${USER}][$(date)] - ${*}\n" >> ${LOG}
+  echo -e "[${USER}][$(date)] - ${*}\n" >> ${LOG}
 }
 
 function LogRotate () {
 local f="$1"
 local limit="$2"
 # Deletes old log file
-	if [ -f "$f" ] ; then
-		CNT=${limit}
-		let P_CNT=CNT-1
-	if [ -f "${f}"."${limit}" ] ; then
-		rm "${f}"."${limit}"
-	fi
+  if [ -f "$f" ] ; then
+    CNT=${limit}
+    let P_CNT=CNT-1
+  if [ -f "${f}"."${limit}" ] ; then
+    rm "${f}"."${limit}"
+  fi
 
 # Renames logs .1 trough .3
 while [[ $CNT -ne 1 ]] ; do
-	if [ -f "${f}"."${P_CNT}" ] ; then
-		mv "${f}"."${P_CNT}" "${f}"."${CNT}"
-	fi
-	let CNT=CNT-1
-	let P_CNT=P_CNT-1
+  if [ -f "${f}"."${P_CNT}" ] ; then
+    mv "${f}"."${P_CNT}" "${f}"."${CNT}"
+  fi
+  let CNT=CNT-1
+  let P_CNT=P_CNT-1
 done
 
 # Renames current log to .1
@@ -134,15 +134,15 @@ logit "${RED}"[ FAILED ] "$1" "${NOCOLOR}"
 if [ ! -z "$RHOST" ]; then
   if ! [[ $RHOST =~ ^[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}$ ]]; then
   BAD "Must enter a valid ip address, cannot continue."
-	exit 1
+    exit 1
   fi
 fi
 
 if [ -z "$AWS" ]; then
-	if [ "$(id -u)" -ne 0 ]; then
-	BAD "Must run as root user, cannot continue."
-	exit 1
-	fi
+  if [ "$(id -u)" -ne 0 ]; then
+    BAD "Must run as root user, cannot continue."
+    exit 1
+  fi
 fi
 
 NOTICE "VERIFYING WEKA AGENT"
@@ -187,18 +187,18 @@ fi
 NOTICE "CHECKING FOR ANY ALERTS"
 WEKAALERTS="$(weka status | awk '/alerts:/ {print $2}')"
 if [ "$WEKAALERTS" != 0 ]; then
-	WARN "$WEKAALERTS Weka alerts present, for additional detials see log ${LOG}."
+  WARN "$WEKAALERTS Weka alerts present, for additional detials see log ${LOG}."
   logit "\n$(weka alerts)"
 else
-	GOOD "No Weka alerts present."
+  GOOD "No Weka alerts present."
 fi
 
 NOTICE "CHECKING REBUILD STATUS"
 REBUILDSTATUS="$(weka status rebuild -J | awk '/progressPercent/ {print $2}' | tr -d ',')"
 if [ "$REBUILDSTATUS" != 0 ]; then
-	BAD "Rebuilding, CURRENT PROGRESS:$REBUILDSTATUS%"
+  BAD "Rebuilding, CURRENT PROGRESS:$REBUILDSTATUS%"
 else
-	GOOD "No rebuild in progress."
+  GOOD "No rebuild in progress."
 fi
 
 NOTICE "VERIFYING WEKA BACKEND HOST STATUS"
@@ -207,8 +207,8 @@ if [ -z "$WEKAHOST" ]; then
   GOOD "Verified all backend host's are UP."
 else
   WEKAHOST=$(weka cluster host -o id,hostname,status -b | grep -v UP)
-	BAD "Failed backend hosts detected."
-	WARN "\n$WEKAHOST\n"
+  BAD "Failed backend hosts detected."
+  WARN "\n$WEKAHOST\n"
 fi
 
 NOTICE "VERIFYING WEKA CLIENT(S) STATUS"
@@ -217,8 +217,8 @@ if [ -z "$WEKACLIENT" ]; then
   GOOD "Verified all client's are up."
 else
   WEKACLIENT=$(weka cluster host -o id,hostname,status -c | grep -v UP)
-	BAD "Failed WEKA clients detected."
-	WARN "\n$WEKACLIENT\n"
+  BAD "Failed WEKA clients detected."
+  WARN "\n$WEKACLIENT\n"
 fi
 
 NOTICE "VERIFYING WEKA NODES STATUS"
@@ -227,8 +227,8 @@ if [ -z "$WEKANODES" ]; then
   GOOD "Weka Nodes Status OK."
 else
   WEKANODES=$(weka cluster nodes -o host,ips,status,role | grep -v UP)
-	BAD "Failed Weka Nodes Found."
-	WARN "\n$WEKANODES\n"
+  BAD "Failed Weka Nodes Found."
+  WARN "\n$WEKANODES\n"
 fi
 
 NOTICE "VERIFYING WEKA FS SNAPSHOTS UPLOAD STATUS"
@@ -241,8 +241,8 @@ fi
 if [ -z "$WEKASNAP" ]; then
   GOOD "Weka snapshot upload status ok."
 else
-	BAD "Following snapshots are being uploaded."
-	WARN "\n$WEKASNAP\n"
+  BAD "Following snapshots are being uploaded."
+  WARN "\n$WEKASNAP\n"
 fi
 
 NOTICE "VERIFYING NO SMALL WEKA FILE SYSTEMS EXISTS"
@@ -290,16 +290,16 @@ function check_ssh_connectivity() {
 
 function weka_agent_service() {
 WEKAAGENTSRV=$(sudo systemctl is-active weka-agent.service)
-if [ "$WEKAAGENTSRV" == "active" ]; then
-	if [[ ! $XCEPT ]] ; then GOOD "	[WEKA AGENT SERVICE] Weka Agent Serivce is running on host $1"
-        fi
-else
-	BAD "	[WEKA AGENT SERVICE] Weka Agent Serivce is NOT running on host $1"
-fi
+  if [ "$WEKAAGENTSRV" == "active" ]; then
+    if [[ ! $XCEPT ]] ; then GOOD "	[WEKA AGENT SERVICE] Weka Agent Serivce is running on host $1"
+  fi
+  else
+    BAD "	[WEKA AGENT SERVICE] Weka Agent Serivce is NOT running on host $1"
+  fi
 }
 
 function diffdate() {
-	local DIFF
+  local DIFF
   if [ -z "$1" ]; then
     BAD "	[TIME SYNC CHECK] Unable to determine time on Host $2."
     return 1
@@ -453,7 +453,7 @@ function backendloop() {
 local CURHOST REMOTEDATE WEKACONSTATUS RESULTS1 RESULTS2 UPGRADECONT MOUNTWEKA
   CURHOST=$(weka cluster host --no-header -o hostname,ips | grep -w "$1" | awk '{print $1}')
   NOTICE "VERIFYING SETTINGS ON BACKEND HOST $CURHOST"
-	check_ssh_connectivity "$1" "$CURHOST" || return
+  check_ssh_connectivity "$1" "$CURHOST" || return
 
   weka_agent_service "$CURHOST"
 
@@ -461,34 +461,38 @@ local CURHOST REMOTEDATE WEKACONSTATUS RESULTS1 RESULTS2 UPGRADECONT MOUNTWEKA
   diffdate "$REMOTEDATE" "$CURHOST"
 
   WEKACONSTATUS=$($SSH "$1" weka local ps --no-header -o name,running | grep -i default | awk '{print $2}')
-	weka_container_status "$WEKACONSTATUS" "$CURHOST"
+  weka_container_status "$WEKACONSTATUS" "$CURHOST"
 
   RESULTS1=$($SSH "$1" df -m "$LOGSDIR1" | awk '{print $4}' | tail -n +2)
   RESULTS2=$($SSH "$1" df -m "$LOGSDIR2" | awk '{print $4}' | tail -n +2)
-	freespace_backend "$RESULTS1" "$RESULTS2" "$CURHOST" || return
+  freespace_backend "$RESULTS1" "$RESULTS2" "$CURHOST" || return
 
   UPGRADECONT=$($SSH "$1" "weka local ps --no-header -o name,running | awk '/upgrade/ {print $2}'")
-	upgrade_container "$UPGRADECONT" "$CURHOST"
+  upgrade_container "$UPGRADECONT" "$CURHOST"
 
   MOUNTWEKA=$($SSH "$1" "mountpoint -qd /weka/")
-	weka_mount "$MOUNTWEKA" "$CURHOST"
+  weka_mount "$MOUNTWEKA" "$CURHOST"
 
   if [ ! -z $AWS ]; then
-  IPCLEANUP=$($SSH "$1" "sudo weka local resources -J | grep -c 0.0.0.0")
+    IPCLEANUP=$($SSH "$1" "sudo weka local resources -J | grep -c 0.0.0.0")
   else
-  IPCLEANUP=$($SSH "$1" "weka local resources -J | grep -c '0\.0\.0\.0'")
+    IPCLEANUP=$($SSH "$1" "weka local resources -J | grep -c '0\.0\.0\.0'")
   fi
-	weka_ip_cleanup "$IPCLEANUP" "$CURHOST"
+  weka_ip_cleanup "$IPCLEANUP" "$CURHOST"
 
   SMBCHECK=$($SSH "$1" "weka local ps 2>/dev/null | grep samba")
-	smb_check "$SMBCHECK" "$CURHOST"
+  smb_check "$SMBCHECK" "$CURHOST"
+  
+  if [ $XCEPT ];then
+    WARN "Backend host checks completed please see logs for details $LOG"
+  fi
 }
 
 function clientloop() {
 local CURHOST REMOTEDATE WEKACONSTATUS RESULTS1 RESULTS2 UPGRADECONT MOUNTWEKA
   CURHOST=$(weka cluster host --no-header -o hostname,ips | grep -w "$1" | awk '{print $1}')
   NOTICE "VERIFYING SETTINGS ON CLIENTs HOST $CURHOST"
-	check_ssh_connectivity "$1" "$CURHOST" || return
+  check_ssh_connectivity "$1" "$CURHOST" || return
 
   weka_agent_service "$CURHOST"
 
@@ -496,19 +500,23 @@ local CURHOST REMOTEDATE WEKACONSTATUS RESULTS1 RESULTS2 UPGRADECONT MOUNTWEKA
   diffdate "$REMOTEDATE" "$CURHOST"
 
   WEKACONSTATUS=$($SSH "$1" weka local ps --no-header -o name,running | grep -i client | awk '{print $2}')
-	weka_container_status "$WEKACONSTATUS" "$CURHOST"
+  weka_container_status "$WEKACONSTATUS" "$CURHOST"
 
   RESULTS1=$($SSH "$1" df -m "$LOGSDIR1" | awk '{print $4}' | tail -n +2)
   RESULTS2=$($SSH "$1" df -m "$LOGSDIR2" | awk '{print $4}' | tail -n +2)
-	freespace_client "$RESULTS1" "$RESULTS2" "$CURHOST" || return
+  freespace_client "$RESULTS1" "$RESULTS2" "$CURHOST" || return
 
-	client_web_test
+  client_web_test
 
   UPGRADECONT=$($SSH "$1" "weka local ps --no-header -o name,running | awk '/upgrade/ {print $2}'")
-	upgrade_container "$UPGRADECONT" "$CURHOST"
+  upgrade_container "$UPGRADECONT" "$CURHOST"
 
   MOUNTWEKA=$($SSH "$1" "mountpoint -qd /weka/")
-	weka_mount "$MOUNTWEKA" "$CURHOST"
+  weka_mount "$MOUNTWEKA" "$CURHOST"
+  
+  if [ $XCEPT ];then
+    WARN "Client checks completed please see logs for details $LOG"
+  fi
 }
 
 main() {
