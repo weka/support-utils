@@ -187,7 +187,7 @@ fi
 NOTICE "CHECKING FOR ANY ALERTS"
 WEKAALERTS="$(weka status | awk '/alerts:/ {print $2}')"
 if [ "$WEKAALERTS" != 0 ]; then
-  WARN "$WEKAALERTS Weka alerts present, for additional detials see log ${LOG}."
+  WARN "$WEKAALERTS Weka alerts present, for additional details see log ${LOG}."
   logit "\n$(weka alerts)"
 else
   GOOD "No Weka alerts present."
