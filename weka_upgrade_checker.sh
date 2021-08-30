@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-#version=1.0.17
+#version=1.0.18
 
 # Colors
 export NOCOLOR="\033[0m"
@@ -41,7 +41,7 @@ exit
 while getopts ":asxhr:" opt; do
         case ${opt} in
           a ) AWS=1
-	  ;;
+    ;;
           s ) SKPCL=true
           ;;
           r ) RHOST=${OPTARG}
@@ -51,10 +51,10 @@ while getopts ":asxhr:" opt; do
           shift
           ;;
           h ) usage
-	  ;;
+    ;;
           * ) echo "Invalid Option Try Again!"
-	     usage
-	  ;;
+       usage
+    ;;
         esac
 done
 
@@ -251,7 +251,7 @@ if [ -z "$SMALLFS" ]; then
   GOOD "No small Weka file system exit."
 else
   BAD "Following small file systems identified, minimum size must be increased to 1GB."
-	WARN "\n$SMALLFS\n"
+  WARN "\n$SMALLFS\n"
 fi
 
 if [[ "$MAJOR" -eq 3 ]] && [[ "$WEKAMINOR1" -eq 12 ]] && [[ "$WEKAMINOR2" -ge 2 ]]; then
@@ -278,12 +278,22 @@ else
   WARN "\n$SSD\n"
 fi
 
+#client version during production can run n-1 however during upgrade they need to be on the same version as cluster otherwise after upgrade they will be n-2.
+NOTICE "VERIFYING CLIENT WEKA VERSION"
+CLIENTFVER=$(weka cluster host --no-header -c -o hostname,ips,software | grep -v "$WEKAERSION")
+if [ -z "$CLIENTFVER" ]; then
+  GOOD "All Weka clients on correct version."
+else
+  BAD "The following Weka clients should be upgraded to $WEKAERSION."
+  WARN "\n$CLIENTFVER\n"
+fi
+
 function check_ssh_connectivity() {
   if $SSH "$1" exit &>/dev/null; then
-    if [[ ! $XCEPT ]] ; then GOOD "	[SSH PASSWORDLESS CONNECTIVITY CHECK] SSH connectivity test PASSED on Host $2 $1"
+    if [[ ! $XCEPT ]] ; then GOOD " [SSH PASSWORDLESS CONNECTIVITY CHECK] SSH connectivity test PASSED on Host $2 $1"
     fi
   else
-    BAD "	[SSH PASSWORDLESS CONNECTIVITY CHECK] SSH connectivity test FAILED on Host $2 $1"
+    BAD " [SSH PASSWORDLESS CONNECTIVITY CHECK] SSH connectivity test FAILED on Host $2 $1"
     return 1
   fi
 }
@@ -291,17 +301,17 @@ function check_ssh_connectivity() {
 function weka_agent_service() {
 WEKAAGENTSRV=$(sudo systemctl is-active weka-agent.service)
   if [ "$WEKAAGENTSRV" == "active" ]; then
-    if [[ ! $XCEPT ]] ; then GOOD "	[WEKA AGENT SERVICE] Weka Agent Serivce is running on host $1"
+    if [[ ! $XCEPT ]] ; then GOOD " [WEKA AGENT SERVICE] Weka Agent Serivce is running on host $1"
   fi
   else
-    BAD "	[WEKA AGENT SERVICE] Weka Agent Serivce is NOT running on host $1"
+    BAD " [WEKA AGENT SERVICE] Weka Agent Serivce is NOT running on host $1"
   fi
 }
 
 function diffdate() {
   local DIFF
   if [ -z "$1" ]; then
-    BAD "	[TIME SYNC CHECK] Unable to determine time on Host $2."
+    BAD " [TIME SYNC CHECK] Unable to determine time on Host $2."
     return 1
   fi
 
@@ -311,23 +321,23 @@ function diffdate() {
   fi
 
   if [ "$DIFF" -gt 60 ]; then
-    BAD "	[TIME SYNC CHECK] There is a time difference of greater than 60s between Host $(hostname) and $2, time difference of ${DIFF}s."
+    BAD " [TIME SYNC CHECK] There is a time difference of greater than 60s between Host $(hostname) and $2, time difference of ${DIFF}s."
   else
-    if [[ ! $XCEPT ]] ; then GOOD "	[TIME SYNC CHECK] Time in sync between host $(hostname) and $2 total difference ${DIFF}s."
+    if [[ ! $XCEPT ]] ; then GOOD " [TIME SYNC CHECK] Time in sync between host $(hostname) and $2 total difference ${DIFF}s."
     fi
   fi
 }
 
 function weka_container_status() {
   if [ -z "$1" ]; then
-    BAD "	[WEKA CONTAINER STATUS] Unable to determine container status on Host $2."
+    BAD " [WEKA CONTAINER STATUS] Unable to determine container status on Host $2."
     return 1
   fi
 
   if [ "$1" != "True" ]; then
-    BAD "	[WEKA CONTAINER STATUS] Weka local container is down on Host $2."
+    BAD " [WEKA CONTAINER STATUS] Weka local container is down on Host $2."
   else
-    if [[ ! $XCEPT ]] ; then GOOD "	[WEKA CONTAINER STATUS] Weka local container is running Host $2."
+    if [[ ! $XCEPT ]] ; then GOOD " [WEKA CONTAINER STATUS] Weka local container is running Host $2."
     fi
   fi
 }
@@ -337,29 +347,29 @@ LOGSDIR2='/opt/weka/logs'
 TOTALHOSTS=$(weka cluster host --no-header | wc -l)
 function freespace_backend() {
   if [ -z "$1" ]; then
-    BAD "	[FREE SPACE CHECK] Unable to determine free space on Host $3."
+    BAD " [FREE SPACE CHECK] Unable to determine free space on Host $3."
     return 1
   fi
 
   if [ "$1" -lt "$HOSTSPACE1" ]; then
-    BAD "	[FREE SPACE CHECK] Host $3 has less than recommended free space of ~$(($1 / 1000))GB in $LOGSDIR1."
-    WARN "	[REDUCE TRACES CAPACITY & INCREASE DIRECTORY SIZE] https://stackoverflow.com/c/weka/questions/1785/1786#1786"
+    BAD " [FREE SPACE CHECK] Host $3 has less than recommended free space of ~$(($1 / 1000))GB in $LOGSDIR1."
+    WARN "  [REDUCE TRACES CAPACITY & INCREASE DIRECTORY SIZE] https://stackoverflow.com/c/weka/questions/1785/1786#1786"
   else
-    if [[ ! $XCEPT ]] ; then GOOD "	[FREE SPACE CHECK] Host $3 has recommended free space of ~$(($1 / 1000))GB in $LOGSDIR1."
+    if [[ ! $XCEPT ]] ; then GOOD " [FREE SPACE CHECK] Host $3 has recommended free space of ~$(($1 / 1000))GB in $LOGSDIR1."
       fi
   fi
 
   if [[ "$TOTALHOSTS" -ge "$LARGE_CLUSTER" && "$2" -lt "$HOSTSPACE2" ]]; then
-    BAD "	[FREE SPACE CHECK] Host $3 has less than recommended free space of $2MB in $LOGSDIR2"
-    WARN "	[REDUCE TRACES CAPACITY & INCREASE DIRECTORY SIZE] https://stackoverflow.com/c/weka/questions/1785/1786#1786"
+    BAD " [FREE SPACE CHECK] Host $3 has less than recommended free space of $2MB in $LOGSDIR2"
+    WARN "  [REDUCE TRACES CAPACITY & INCREASE DIRECTORY SIZE] https://stackoverflow.com/c/weka/questions/1785/1786#1786"
     return 1
   fi
 
   if [ "$2" -lt "$HOSTSPACEMIN" ]; then
-    BAD "	[FREE SPACE CHECK] Host $3 has Less than Recommended Free Space of $2MB in $LOGSDIR2."
-    WARN "	[REDUCE TRACES CAPACITY & INCREASE DIRECTORY SIZE] https://stackoverflow.com/c/weka/questions/1785/1786#1786"
+    BAD " [FREE SPACE CHECK] Host $3 has Less than Recommended Free Space of $2MB in $LOGSDIR2."
+    WARN "  [REDUCE TRACES CAPACITY & INCREASE DIRECTORY SIZE] https://stackoverflow.com/c/weka/questions/1785/1786#1786"
   else
-    if [[ ! $XCEPT ]] ; then GOOD "	[FREE SPACE CHECK] Host $3 has Recommended Free Space of $2MB in $LOGSDIR2."
+    if [[ ! $XCEPT ]] ; then GOOD " [FREE SPACE CHECK] Host $3 has Recommended Free Space of $2MB in $LOGSDIR2."
     fi
   fi
 }
@@ -367,69 +377,69 @@ function freespace_backend() {
 # Check for any upgrade container, these should be removed before upgrading if found.
 function upgrade_container() {
   if [ -z "$1" ]; then
-    if [[ ! $XCEPT ]] ; then GOOD "	[UPGRADE CONTAINER CHECK] No upgrade containers found on Host $2."
+    if [[ ! $XCEPT ]] ; then GOOD " [UPGRADE CONTAINER CHECK] No upgrade containers found on Host $2."
     fi
   else
-    BAD "	[UPGRADE CONTAINER CHECK] Upgrade container found on Host $2 status $1."
+    BAD " [UPGRADE CONTAINER CHECK] Upgrade container found on Host $2 status $1."
   fi
 }
 
 # Check for any Weka filesystems mountd on /weka
 function weka_mount() {
   if [ -z "$1" ]; then
-    if [[ ! $XCEPT ]] ; then GOOD "	[CHECKING WEKA MOUNT] NO Mount point on '/weka' found on Host $2."
+    if [[ ! $XCEPT ]] ; then GOOD " [CHECKING WEKA MOUNT] NO Mount point on '/weka' found on Host $2."
     fi
   else
-    BAD "	[CHECKING WEKA MOUNT] Mount point on '/weka' found on Host $2."
+    BAD " [CHECKING WEKA MOUNT] Mount point on '/weka' found on Host $2."
   fi
 }
 
 # Check for any invalid IP addresses in Weka resources. See https://wekaio.atlassian.net/wiki/spaces/MGMT/pages/1503330580/Cleaning+up+backend+IPs+on+systems+upgraded+to+3.8
 function weka_ip_cleanup() {
   if [ "$1" -eq 0 ]; then
-    if [[ ! $XCEPT ]] ; then GOOD "	[CHECKING IP WEKA RESOURCES] $1 invalid IP addresses found in Weka resources on Host $2."
+    if [[ ! $XCEPT ]] ; then GOOD " [CHECKING IP WEKA RESOURCES] $1 invalid IP addresses found in Weka resources on Host $2."
     fi
   else
-    BAD "	[CHECKING IP WEKA RESOURCES] $1 Invalid IP addresses in weka resources found on Host $2. Need to run update_backend_ips.py on this backend"
-    WARN "	[CHECKING IP WEKA RESOURCES] https://wekaio.atlassian.net/wiki/spaces/MGMT/pages/1503330580/Cleaning+up+backend+IPs+on+systems+upgraded+to+3.8"
+    BAD " [CHECKING IP WEKA RESOURCES] $1 Invalid IP addresses in weka resources found on Host $2. Need to run update_backend_ips.py on this backend"
+    WARN "  [CHECKING IP WEKA RESOURCES] https://wekaio.atlassian.net/wiki/spaces/MGMT/pages/1503330580/Cleaning+up+backend+IPs+on+systems+upgraded+to+3.8"
   fi
 }
 
 # Check for any SMB containers, these may need stopping BEFORE upgrade.
 function smb_check() {
   if [ -z "$1" ]; then
-    if [[ ! $XCEPT ]] ; then GOOD "	[CHECKING SMB RESOURCES] NO SMB containers found on Host $2."
+    if [[ ! $XCEPT ]] ; then GOOD " [CHECKING SMB RESOURCES] NO SMB containers found on Host $2."
     fi
   else
-    WARN "	[CHECKING SMB RESOURCES] Found SMB resources on Host $2. Recommend stopping SMB container before upgrade on this backend."
+    WARN "  [CHECKING SMB RESOURCES] Found SMB resources on Host $2. Recommend stopping SMB container before upgrade on this backend."
   fi
 }
 
 function freespace_client() {
   if [ -z "$1" ]; then
-    BAD "	[FREE SPACE CHECK] Unable to Determine Free Space on Host $3."
+    BAD " [FREE SPACE CHECK] Unable to Determine Free Space on Host $3."
     return 1
   fi
 
   if [ "$1" -lt "$CLIENTSPACE1" ]; then
-    BAD "	[FREE SPACE CHECK] Host $3 has Less than Recommended Free Space of $(($1 / 1000))GB in $LOGSDIR1."
-    WARN "	[REDUCE TRACES CAPACITY & INCREASE DIRECTORY SIZE] https://stackoverflow.com/c/weka/questions/1785/1786#1786"
+    BAD " [FREE SPACE CHECK] Host $3 has Less than Recommended Free Space of $(($1 / 1000))GB in $LOGSDIR1."
+    WARN "  [REDUCE TRACES CAPACITY & INCREASE DIRECTORY SIZE] https://stackoverflow.com/c/weka/questions/1785/1786#1786"
   else
-    if [[ ! $XCEPT ]] ; then GOOD "	[FREE SPACE CHECK] Host $3 has Recommended Free Space of $(($1 / 1000))GB in $LOGSDIR1."
+    if [[ ! $XCEPT ]] ; then GOOD " [FREE SPACE CHECK] Host $3 has Recommended Free Space of $(($1 / 1000))GB in $LOGSDIR1."
     fi
   fi
 
   if [[ "$TOTALHOSTS" -ge "$LARGE_CLUSTER" && "$2" -lt "$CLIENTSPACE2" ]]; then
-    BAD "	[FREE SPACE CHECK] Host $3 has Less than Recommended Free Space of $2MB in $LOGSDIR2"
-    WARN "	[REDUCE TRACES CAPACITY & INCREASE DIRECTORY SIZE] https://stackoverflow.com/c/weka/questions/1785/1786#1786"
+    BAD " [FREE SPACE CHECK] Host $3 has Less than Recommended Free Space of $2MB in $LOGSDIR2"
+    WARN "  [REDUCE TRACES CAPACITY & INCREASE DIRECTORY SIZE] https://stackoverflow.com/c/weka/questions/1785/1786#1786"
     return 1
   fi
 
   if [ "$2" -lt "$CLIENTSPACEMIN" ]; then
-    BAD "	[FREE SPACE CHECK] Host $3 has Less than Recommended Free Space of $2MB in $LOGSDIR2."
-    WARN "	[REDUCE TRACES CAPACITY & INCREASE DIRECTORY SIZE] https://stackoverflow.com/c/weka/questions/1785/1786#1786"
+    BAD " [FREE SPACE CHECK] Host $3 has Less than Recommended Free Space of $2MB in $LOGSDIR2."
+    WARN "  [REDUCE TRACES CAPACITY & INCREASE DIRECTORY SIZE] https://stackoverflow.com/c/weka/questions/1785/1786#1786"
   else
-    if [[ ! $XCEPT ]] ; then GOOD "	[FREE SPACE CHECK] Host $3 has Recommended Free Space of $2MB in $LOGSDIR2."
+    if [[ ! $XCEPT ]] ; then GOOD " [FREE SPACE CHECK] Host $3 has Recommended Free Space of $2MB in $LOGSDIR2."
     fi
   fi
 }
@@ -437,12 +447,12 @@ function freespace_client() {
 function client_web_test() {
   WEBTEST=$(curl -sL -w "%{http_code}" "http://www.google.com/" -o /dev/null)
   if [ "$WEBTEST" = 200 ]; then
-    if [[ ! $XCEPT ]] ; then GOOD "	[HTTP CONNECTIVITY TEST] HTTP connectivity is up."
+    if [[ ! $XCEPT ]] ; then GOOD " [HTTP CONNECTIVITY TEST] HTTP connectivity is up."
     fi
   elif [  "$WEBTEST" = 5 ]; then
-    WARN "	[HTTP CONNECTIVITY TEST] Blocked by Web Proxy."
+    WARN "  [HTTP CONNECTIVITY TEST] Blocked by Web Proxy."
   else
-    BAD "	[HTTP CONNECTIVITY TEST] Internet access maybe down."
+    BAD " [HTTP CONNECTIVITY TEST] Internet access maybe down."
   fi
 }
 
