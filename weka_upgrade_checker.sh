@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-#version=1.0.18
+#version=1.0.19
 
 # Colors
 export NOCOLOR="\033[0m"
@@ -233,7 +233,7 @@ fi
 
 NOTICE "VERIFYING WEKA FS SNAPSHOTS UPLOAD STATUS"
 if [[ "$MAJOR" -eq 3 ]] && [[ "$WEKAMINOR1" -ge 12 ]]; then
-  WEKASNAP=$(weka fs snapshot -o id,name,remote_object_status,remote_object_progress | grep -i upload)
+  WEKASNAP=$(weka fs snapshot --no-header -o id,name,remote_object_status,remote_object_progress | grep -i upload)
 else
   WEKASNAP=$(weka fs snapshot --no-header -o name,stow,object | grep -i upload)
 fi
@@ -270,12 +270,21 @@ if [[ "$MAJOR" -eq 3 ]] && [[ "$WEKAMINOR1" -eq 12 ]] && [[ "$WEKAMINOR2" -ge 2 
 fi
 
 NOTICE "VERIFYING SSD FIRMWARE"
-SSD=$(weka cluster drive -o uuid,hostname,vendor,firmware,model | grep -i EDB5002Q)
+SSD=$(weka cluster drive --no-header -o uuid,hostname,vendor,firmware,model | grep -i EDB5002Q)
 if [ -z "$SSD" ]; then
   GOOD "SSD Firmware check completed."
 else
   BAD "The following SSDs might be problematic contact support."
   WARN "\n$SSD\n"
+fi
+
+NOTICE "VERIFYING WEKA CLUSTER DRIVE STATUS"
+WEKADRIVE=$(weka cluster drive --no-header -o uuid,hostname,status | grep -v ACTIVE)
+if [ -z "$WEKADRIVE" ]; then
+  GOOD "All drives are in OK status."
+else
+  BAD "The following Drives are no Active."
+  WARN "\n$WEKADRIVE\n"
 fi
 
 #client version during production can run n-1 however during upgrade they need to be on the same version as cluster otherwise after upgrade they will be n-2.
