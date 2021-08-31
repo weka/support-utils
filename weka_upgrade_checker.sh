@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-#version=1.0.19
+#version=1.0.20
 
 # Colors
 export NOCOLOR="\033[0m"
@@ -279,7 +279,7 @@ else
 fi
 
 NOTICE "VERIFYING WEKA CLUSTER DRIVE STATUS"
-WEKADRIVE=$(weka cluster drive --no-header -o uuid,hostname,status | grep -v ACTIVE)
+WEKADRIVE=$(weka cluster drive --no-header -o id,uuid,hostname,status | grep -v ACTIVE)
 if [ -z "$WEKADRIVE" ]; then
   GOOD "All drives are in OK status."
 else
@@ -432,7 +432,7 @@ function freespace_client() {
 
   if [ "$1" -lt "$CLIENTSPACE1" ]; then
     BAD " [FREE SPACE CHECK] Host $3 has Less than Recommended Free Space of $(($1 / 1000))GB in $LOGSDIR1."
-    WARN "  [REDUCE TRACES CAPACITY & INCREASE DIRECTORY SIZE] https://stackoverflow.com/c/weka/questions/1785/1786#1786"
+    WARN " [REDUCE TRACES CAPACITY & INCREASE DIRECTORY SIZE] https://stackoverflow.com/c/weka/questions/1785/1786#1786"
   else
     if [[ ! $XCEPT ]] ; then GOOD " [FREE SPACE CHECK] Host $3 has Recommended Free Space of $(($1 / 1000))GB in $LOGSDIR1."
     fi
@@ -440,7 +440,7 @@ function freespace_client() {
 
   if [[ "$TOTALHOSTS" -ge "$LARGE_CLUSTER" && "$2" -lt "$CLIENTSPACE2" ]]; then
     BAD " [FREE SPACE CHECK] Host $3 has Less than Recommended Free Space of $2MB in $LOGSDIR2"
-    WARN "  [REDUCE TRACES CAPACITY & INCREASE DIRECTORY SIZE] https://stackoverflow.com/c/weka/questions/1785/1786#1786"
+    WARN " [REDUCE TRACES CAPACITY & INCREASE DIRECTORY SIZE] https://stackoverflow.com/c/weka/questions/1785/1786#1786"
     return 1
   fi
 
@@ -493,9 +493,9 @@ local CURHOST REMOTEDATE WEKACONSTATUS RESULTS1 RESULTS2 UPGRADECONT MOUNTWEKA
   weka_mount "$MOUNTWEKA" "$CURHOST"
 
   if [ ! -z $AWS ]; then
-    IPCLEANUP=$($SSH "$1" "sudo weka local resources -J | grep -c 0.0.0.0")
+    IPCLEANUP=$($SSH "$1" "sudo weka local resources -J | grep -c -E -o '([0]{1,3}[\.]){3}[0]{1,3}'")
   else
-    IPCLEANUP=$($SSH "$1" "weka local resources -J | grep -c '0\.0\.0\.0'")
+    IPCLEANUP=$($SSH "$1" "weka local resources -J | grep -c -E -o '([0]{1,3}[\.]){3}[0]{1,3}'")
   fi
   weka_ip_cleanup "$IPCLEANUP" "$CURHOST"
 
