@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-#version=1.0.20
+#version=1.0.21
 
 # Colors
 export NOCOLOR="\033[0m"
@@ -254,15 +254,15 @@ else
   WARN "\n$SMALLFS\n"
 fi
 
-if [[ "$MAJOR" -eq 3 ]] && [[ "$WEKAMINOR1" -eq 12 ]] && [[ "$WEKAMINOR2" -ge 2 ]]; then
+if [[ "$MAJOR" -eq 3 ]] && [[ "$WEKAMINOR1" -eq 12 ]]; then
   NOTICE "VERIFYING RAID REDUCTION SETTINGS"
   weka local run /weka/cfgdump > $DIR/cfgdump.txt 
   if [ $? -eq 0 ]; then
     RAID=$(awk '/clusterInfo/{f=1} f && /reserved/ {getline ; getline ; print ($0+0); exit}' $DIR/cfgdump.txt)
       if [ $RAID -eq 1 ]; then  
-        GOOD "Raid Reduction enabled." 
+        GOOD "Raid Reduction is disabled." 
       else
-        BAD "Raid Reduction is NOT enabled issue command weka debug jrpc config_override_key key='clusterInfo.reserved[1]' value=1."
+        BAD "Raid Reduction is ENABLED issue command weka debug jrpc config_override_key key='clusterInfo.reserved[1]' value=1."
       fi
   else
     WARN "Unable to verify Raid Reduction settings."
