@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-#version=1.0.21
+#version=1.0.22
 
 # Colors
 export NOCOLOR="\033[0m"
@@ -12,9 +12,9 @@ export BLUE="\033[1;34m"
 
 DIR='/tmp'
 SSHCONF="$DIR/ssh_config"
-LOG="$DIR/weka_upgrade_checker.log"
+LOG="$DIR/weka_upgrade_checker_`date +"%Y_%m_%d_%I_%M_%p"`.log"
 LARGE_CLUSTER=100 #Total number of hosts and clients in cluster
-HOSTSPACE1=5000 #Minimum Free space on BACKEND in /weka specified in MBs
+HOSTSPACE1=6000 #Minimum Free space on BACKEND in /weka specified in MBs
 HOSTSPACE2=50 #Minimum Free space on BACKEND in /opt/weka/logs specified in MBs
 HOSTSPACEMIN=25 #Absolute Minimum Free space on BACKEND in /opt/weka/logs specified in MBs "ONLY on small clusters"
 CLIENTSPACE1=5000 #Minimum Free space on CLIENTS in /weka specified in MBs
