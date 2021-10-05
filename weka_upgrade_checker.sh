@@ -12,7 +12,7 @@ export BLUE="\033[1;34m"
 
 DIR='/tmp'
 SSHCONF="$DIR/ssh_config"
-LOG="$DIR/weka_upgrade_checker_`date +"%Y_%m_%d_%I_%M_%p"`.log"
+LOG="$DIR/weka_upgrade_checker_`date +"%Y%m%dT%I%M%S"`.log"
 LARGE_CLUSTER=100 #Total number of hosts and clients in cluster
 HOSTSPACE1=6000 #Minimum Free space on BACKEND in /weka specified in MBs
 HOSTSPACE2=50 #Minimum Free space on BACKEND in /opt/weka/logs specified in MBs
