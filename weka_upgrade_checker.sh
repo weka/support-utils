@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-#version=1.0.22
+#version=1.0.23
 
 # Colors
 export NOCOLOR="\033[0m"
@@ -151,11 +151,11 @@ if [ -z "$WEKAVERIFY" ]; then
   BAD "Weka is NOT installed on host or the container is down, cannot continue."
   exit 1
 else
-WEKAERSION=$(weka version current)
+WEKAVERSION=$(weka version current)
 MAJOR=$(weka version current | cut -d "." -f1)
 WEKAMINOR1=$(weka version current | cut -d "." -f2)
 WEKAMINOR2=$(weka version current | cut -d "." -f3)
-  GOOD "Weka verified $WEKAERSION."
+  GOOD "Weka verified $WEKAVERSION."
 fi
 
 NOTICE "WEKA USER LOGIN TEST"
@@ -289,11 +289,11 @@ fi
 
 #client version during production can run n-1 however during upgrade they need to be on the same version as cluster otherwise after upgrade they will be n-2.
 NOTICE "VERIFYING CLIENT WEKA VERSION"
-CLIENTFVER=$(weka cluster host --no-header -c -o hostname,ips,software | grep -v "$WEKAERSION")
+CLIENTFVER=$(weka cluster host --no-header -c -o hostname,ips,software | grep -v "$MAJOR.$WEKAMINOR1.$WEKAMINOR2")
 if [ -z "$CLIENTFVER" ]; then
   GOOD "All Weka clients on correct version."
 else
-  BAD "The following Weka clients should be upgraded to $WEKAERSION."
+  BAD "The following Weka clients should be upgraded to $WEKAVERSION."
   WARN "\n$CLIENTFVER\n"
 fi
 
