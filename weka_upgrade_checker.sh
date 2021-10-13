@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-#version=1.0.23
+#version=1.0.24
 
 # Colors
 export NOCOLOR="\033[0m"
@@ -298,7 +298,7 @@ else
 fi
 
 function check_ssh_connectivity() {
-  if $SSH "$1" exit &>/dev/null; then
+  if $SSH -o ConnectTimeout=10 "$1" exit &>/dev/null; then
     if [[ ! $XCEPT ]] ; then GOOD " [SSH PASSWORDLESS CONNECTIVITY CHECK] SSH connectivity test PASSED on Host $2 $1"
     fi
   else
