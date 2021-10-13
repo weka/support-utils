@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-#version=1.0.24
+#version=1.0.25
 
 # Colors
 export NOCOLOR="\033[0m"
@@ -33,28 +33,32 @@ OPTIONS:
   -a  Creates a specific aws ssh config file for AWS instance.
   -s  Skips client checks
   -r  Check specific remote system. Enter valid ip address of a weka backend or client.
+  -o  Include additional checks for rolling upgrade.
   -x  Only report exceptions/errors.
 EOF
 exit
 }
 
-while getopts ":asxhr:" opt; do
+while getopts ":asoxhr:" opt; do
         case ${opt} in
           a ) AWS=1
-    ;;
+          ;;
           s ) SKPCL=true
           ;;
           r ) RHOST=${OPTARG}
+          shift
+          ;;
+          o ) ROLL=1
           shift
           ;;
           x ) XCEPT=true
           shift
           ;;
           h ) usage
-    ;;
+          ;;
           * ) echo "Invalid Option Try Again!"
        usage
-    ;;
+          ;;
         esac
 done
 
@@ -256,11 +260,11 @@ fi
 
 if [[ "$MAJOR" -eq 3 ]] && [[ "$WEKAMINOR1" -eq 12 ]]; then
   NOTICE "VERIFYING RAID REDUCTION SETTINGS"
-  weka local run /weka/cfgdump > $DIR/cfgdump.txt 
+  weka local run /weka/cfgdump > $DIR/cfgdump.txt
   if [ $? -eq 0 ]; then
     RAID=$(awk '/clusterInfo/{f=1} f && /reserved/ {getline ; getline ; print ($0+0); exit}' $DIR/cfgdump.txt)
-      if [ $RAID -eq 1 ]; then  
-        GOOD "Raid Reduction is disabled." 
+      if [ $RAID -eq 1 ]; then
+        GOOD "Raid Reduction is disabled."
       else
         BAD "Raid Reduction is ENABLED issue command weka debug jrpc config_override_key key='clusterInfo.reserved[1]' value=1."
       fi
@@ -307,11 +311,27 @@ function check_ssh_connectivity() {
   fi
 }
 
+function check_jq() {
+  if ! $SSH $1 command -v jq &>/dev/null; then
+    BAD " [JQ CHECK ROLLING UPGRADE] 'jq' executable was not found on host $2"
+  else
+    GOOD " [JQ CHECK ROLLING UPGRADE] 'jq is installed on host $2'"
+  fi
+}
+
+function weka_user_login() {
+if [ "$1" == "error: Authentication Failed: " ]; then
+  BAD " [WEKA USER LOGIN TEST ROLLING UPGRADE] Please login using weka user login on host $2"
+else
+  GOOD " [WEKA USER LOGIN TEST ROLLING UPGRADE] Weka user login successful on host $2."
+fi
+}
+
 function weka_agent_service() {
 WEKAAGENTSRV=$(sudo systemctl is-active weka-agent.service)
   if [ "$WEKAAGENTSRV" == "active" ]; then
     if [[ ! $XCEPT ]] ; then GOOD " [WEKA AGENT SERVICE] Weka Agent Serivce is running on host $1"
-  fi
+    fi
   else
     BAD " [WEKA AGENT SERVICE] Weka Agent Serivce is NOT running on host $1"
   fi
@@ -501,7 +521,16 @@ local CURHOST REMOTEDATE WEKACONSTATUS RESULTS1 RESULTS2 UPGRADECONT MOUNTWEKA
 
   SMBCHECK=$($SSH "$1" "weka local ps 2>/dev/null | grep samba")
   smb_check "$SMBCHECK" "$CURHOST"
-  
+
+  if [ ! -z $ROLL ]; then
+  WEKALOGIN=$($SSH "$1" "weka cluster nodes 2>&1 | awk '/error:/'")
+  weka_user_login "$WEKALOGIN" "$CURHOST"
+  fi
+
+  if [ ! -z $ROLL ]; then
+  check_jq "$1" "$CURHOST"
+  fi
+
   if [ $XCEPT ];then
     WARN "Backend host checks completed please see logs for details $LOG"
   fi
@@ -532,7 +561,7 @@ local CURHOST REMOTEDATE WEKACONSTATUS RESULTS1 RESULTS2 UPGRADECONT MOUNTWEKA
 
   MOUNTWEKA=$($SSH "$1" "mountpoint -qd /weka/")
   weka_mount "$MOUNTWEKA" "$CURHOST"
-  
+
   if [ $XCEPT ];then
     WARN "Client checks completed please see logs for details $LOG"
   fi
