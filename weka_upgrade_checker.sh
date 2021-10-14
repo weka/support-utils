@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-#version=1.0.25
+#version=1.0.26
 
 # Colors
 export NOCOLOR="\033[0m"
@@ -289,6 +289,20 @@ if [ -z "$WEKADRIVE" ]; then
 else
   BAD "The following Drives are no Active."
   WARN "\n$WEKADRIVE\n"
+fi
+
+NOTICE "VERIFYING WEKA TRACES STATUS"
+if [[ "$MAJOR" -eq 3 ]] && [[ "$WEKAMINOR1" -ge 10 ]]; then
+  WEKATRACE=$(sudo weka debug traces status | awk 'NR==1 {print $3}')
+else
+  WEKATRACE=$(sudo weka local exec /usr/local/bin/supervisorctl status weka-trace-dumper | tr -d '\n' | awk '{print $2}')
+fi
+
+if [[ "$WEKATRACE" == "enabled." || "$WEKATRACE" == "RUNNING" ]]; then
+  GOOD "Weka traces are enabled."
+else
+  BAD "Weka traces are not enabled."
+  WARN "Please enable Weka traces using 'weka debug traces start'"
 fi
 
 #client version during production can run n-1 however during upgrade they need to be on the same version as cluster otherwise after upgrade they will be n-2.
