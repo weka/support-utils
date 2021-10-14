@@ -518,7 +518,7 @@ local CURHOST REMOTEDATE WEKACONSTATUS RESULTS1 RESULTS2 UPGRADECONT MOUNTWEKA
 
   RESULTS1=$($SSH "$1" df -m "$LOGSDIR1" | awk '{print $4}' | tail -n +2)
   RESULTS2=$($SSH "$1" df -m "$LOGSDIR2" | awk '{print $4}' | tail -n +2)
-  freespace_backend "$RESULTS1" "$RESULTS2" "$CURHOST" || return
+  freespace_backend "$RESULTS1" "$RESULTS2" "$CURHOST"
 
   UPGRADECONT=$($SSH "$1" "weka local ps --no-header -o name,running | awk '/upgrade/ {print $2}'")
   upgrade_container "$UPGRADECONT" "$CURHOST"
@@ -566,7 +566,7 @@ local CURHOST REMOTEDATE WEKACONSTATUS RESULTS1 RESULTS2 UPGRADECONT MOUNTWEKA
 
   RESULTS1=$($SSH "$1" df -m "$LOGSDIR1" | awk '{print $4}' | tail -n +2)
   RESULTS2=$($SSH "$1" df -m "$LOGSDIR2" | awk '{print $4}' | tail -n +2)
-  freespace_client "$RESULTS1" "$RESULTS2" "$CURHOST" || return
+  freespace_client "$RESULTS1" "$RESULTS2" "$CURHOST"
 
   client_web_test
 
