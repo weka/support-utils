@@ -260,7 +260,7 @@ fi
 
 if [[ "$MAJOR" -eq 3 ]] && [[ "$WEKAMINOR1" -eq 12 ]]; then
   NOTICE "VERIFYING RAID REDUCTION SETTINGS"
-  weka local run /weka/cfgdump > $DIR/cfgdump.txt
+  sudo weka local run /weka/cfgdump > $DIR/cfgdump.txt
   if [ $? -eq 0 ]; then
     RAID=$(awk '/clusterInfo/{f=1} f && /reserved/ {getline ; getline ; print ($0+0); exit}' $DIR/cfgdump.txt)
       if [ $RAID -eq 1 ]; then
@@ -307,7 +307,7 @@ fi
 
 #client version during production can run n-1 however during upgrade they need to be on the same version as cluster otherwise after upgrade they will be n-2.
 NOTICE "VERIFYING CLIENT WEKA VERSION"
-CLIENTFVER=$(weka cluster host --no-header -c -o hostname,ips,software | grep -v "$MAJOR.$WEKAMINOR1.$WEKAMINOR2")
+CLIENTFVER=$(weka cluster host -c -o hostname,ips,software | grep -v "$MAJOR.$WEKAMINOR1.$WEKAMINOR2")
 if [ -z "$CLIENTFVER" ]; then
   GOOD "All Weka clients on correct version."
 else
