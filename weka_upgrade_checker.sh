@@ -249,10 +249,10 @@ else
   WARN "\n$WEKASNAP\n"
 fi
 
-NOTICE "VERIFYING NO SMALL WEKA FILE SYSTEMS EXISTS"
+NOTICE "VERIFYING IF SMALL WEKA FILE SYSTEMS EXISTS"
 SMALLFS=$(weka fs -o name,availableSSD -R --no-header | awk '$3< 1073741824')
 if [ -z "$SMALLFS" ]; then
-  GOOD "No small Weka file system exit."
+  GOOD "No small Weka file system found."
 else
   BAD "Following small file systems identified, minimum size must be increased to 1GB."
   WARN "\n$SMALLFS\n"
@@ -266,7 +266,7 @@ if [[ "$MAJOR" -eq 3 ]] && [[ "$WEKAMINOR1" -eq 12 ]]; then
       if [ $RAID -eq 1 ]; then
         GOOD "Raid Reduction is disabled."
       else
-        BAD "Raid Reduction is ENABLED issue command weka debug jrpc config_override_key key='clusterInfo.reserved[1]' value=1."
+        BAD "Raid Reduction is ENABLED issue command weka debug jrpc config_override_key key='clusterInfo.reserved[1]' value=1 to disable."
       fi
   else
     WARN "Unable to verify Raid Reduction settings."
