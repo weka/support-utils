@@ -293,9 +293,9 @@ fi
 
 NOTICE "VERIFYING WEKA TRACES STATUS"
 if [[ "$MAJOR" -eq 3 ]] && [[ "$WEKAMINOR1" -ge 10 ]]; then
-  WEKATRACE=$(sudo weka debug traces status | awk 'NR==1 {print $3}')
+  WEKATRACE=$(weka debug traces status | awk 'NR==1 {print $3}')
 else
-  WEKATRACE=$(sudo weka local exec /usr/local/bin/supervisorctl status weka-trace-dumper | tr -d '\n' | awk '{print $2}')
+  WEKATRACE=$(weka local exec /usr/local/bin/supervisorctl status weka-trace-dumper | tr -d '\n' | awk '{print $2}')
 fi
 
 if [[ "$WEKATRACE" == "enabled." || "$WEKATRACE" == "RUNNING" ]]; then
