@@ -385,7 +385,6 @@ function diffdate() {
 function weka_container_status() {
   if [ -z "$1" ]; then
     BAD " [WEKA CONTAINER STATUS] Unable to determine container status on Host $2."
-    return 1
   fi
 
   if [ "$1" != "True" ]; then
@@ -528,6 +527,7 @@ local CURHOST REMOTEDATE WEKACONSTATUS RESULTS1 RESULTS2 UPGRADECONT MOUNTWEKA
   MOUNTWEKA=$($SSH "$1" "mountpoint -qd /weka/")
   weka_mount "$MOUNTWEKA" "$CURHOST"
 
+  #if service is not running move to next host via return.
   WEKAAGENTSRV=$($SSH "$1" sudo systemctl is-active weka-agent.service)
   weka_agent_service "$WEKAAGENTSRV" "$CURHOST" || return
 
