@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-#version=1.0.28
+#version=1.0.27
 
 # Colors
 export NOCOLOR="\033[0m"
@@ -538,7 +538,7 @@ local CURHOST REMOTEDATE WEKACONSTATUS RESULTS1 RESULTS2 UPGRADECONT MOUNTWEKA
     IPCLEANUP=$($SSH "$1" "weka local resources -J | grep -c -E -o '([0]{1,3}[\.]){3}[0]{1,3}'")
      weka_ip_cleanup "$IPCLEANUP" "$CURHOST"
   fi
-  
+
   SMBCHECK=$($SSH "$1" "weka local ps | grep samba")
   smb_check "$SMBCHECK" "$CURHOST"
 
@@ -580,7 +580,7 @@ local CURHOST REMOTEDATE WEKACONSTATUS RESULTS1 RESULTS2 UPGRADECONT MOUNTWEKA
 
   MOUNTWEKA=$($SSH "$1" "mountpoint -qd /weka/")
   weka_mount "$MOUNTWEKA" "$CURHOST"
-  
+
   WEKAAGENTSRV=$($SSH "$1" sudo systemctl is-active weka-agent.service)
   weka_agent_service "$WEKAAGENTSRV" "$CURHOST" || return
 
