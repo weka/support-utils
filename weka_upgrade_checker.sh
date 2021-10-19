@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-#version=1.0.26
+#version=1.0.27
 
 # Colors
 export NOCOLOR="\033[0m"
@@ -313,6 +313,16 @@ if [ -z "$CLIENTFVER" ]; then
 else
   BAD "The following Weka clients should be upgraded to $WEKAVERSION."
   WARN "\n$CLIENTFVER\n"
+fi
+
+NOTICE "CHECKING FOR MANUAL WEKA OVERRIDES"
+OVERRIDE=$(weka debug override list --no-header)
+if [ -z "$OVERRIDE" ]; then
+  GOOD "No manual Weka overrides found."
+else
+  OVERRIDE=$(weka debug override list)
+  WARN "Manual Weka overrides found"
+  WARN "\n$OVERRIDE\n"
 fi
 
 function check_ssh_connectivity() {
