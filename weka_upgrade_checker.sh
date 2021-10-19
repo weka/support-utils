@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-#version=1.0.27
+#version=1.0.28
 
 # Colors
 export NOCOLOR="\033[0m"
@@ -326,7 +326,7 @@ else
 fi
 
 function check_ssh_connectivity() {
-  if $SSH -o ConnectTimeout=10 "$1" exit &>/dev/null; then
+  if $SSH -o ConnectTimeout=5 "$1" exit &>/dev/null; then
     if [[ ! $XCEPT ]] ; then GOOD " [SSH PASSWORDLESS CONNECTIVITY CHECK] SSH connectivity test PASSED on Host $2 $1"
     fi
   else
@@ -352,12 +352,13 @@ fi
 }
 
 function weka_agent_service() {
-WEKAAGENTSRV=$(sudo systemctl is-active weka-agent.service)
-  if [ "$WEKAAGENTSRV" == "active" ]; then
-    if [[ ! $XCEPT ]] ; then GOOD " [WEKA AGENT SERVICE] Weka Agent Serivce is running on host $1"
+  if [ "$1" == "active" ]; then
+    if [[ ! $XCEPT ]] ; then GOOD " [WEKA AGENT SERVICE] Weka Agent Serivce is running on host $2"
     fi
   else
-    BAD " [WEKA AGENT SERVICE] Weka Agent Serivce is NOT running on host $1"
+    BAD " [WEKA AGENT SERVICE] Weka Agent Serivce is NOT running on host $2"
+    WARN " [WEKA AGENT SERVICE] Start Weka Agent Serivce on host $2 and rerun the tests"
+    return 1
   fi
 }
 
@@ -498,11 +499,10 @@ function freespace_client() {
 }
 
 function client_web_test() {
-  WEBTEST=$(curl -sL -w "%{http_code}" "http://www.google.com/" -o /dev/null)
-  if [ "$WEBTEST" = 200 ]; then
+  if [ "$1" = 200 ]; then
     if [[ ! $XCEPT ]] ; then GOOD " [HTTP CONNECTIVITY TEST] HTTP connectivity is up."
     fi
-  elif [  "$WEBTEST" = 5 ]; then
+  elif [  "$1" = 5 ]; then
     WARN "  [HTTP CONNECTIVITY TEST] Blocked by Web Proxy."
   else
     BAD " [HTTP CONNECTIVITY TEST] Internet access maybe down."
@@ -518,33 +518,35 @@ local CURHOST REMOTEDATE WEKACONSTATUS RESULTS1 RESULTS2 UPGRADECONT MOUNTWEKA
   NOTICE "VERIFYING SETTINGS ON BACKEND HOST $CURHOST"
   check_ssh_connectivity "$1" "$CURHOST" || return
 
-  weka_agent_service "$CURHOST"
-
   REMOTEDATE=$($SSH "$1" "date --utc '+%s'")
   diffdate "$REMOTEDATE" "$CURHOST"
-
-  WEKACONSTATUS=$($SSH "$1" weka local ps --no-header -o name,running | grep -i default | awk '{print $2}')
-  weka_container_status "$WEKACONSTATUS" "$CURHOST"
 
   RESULTS1=$($SSH "$1" df -m "$LOGSDIR1" | awk '{print $4}' | tail -n +2)
   RESULTS2=$($SSH "$1" df -m "$LOGSDIR2" | awk '{print $4}' | tail -n +2)
   freespace_backend "$RESULTS1" "$RESULTS2" "$CURHOST"
 
-  UPGRADECONT=$($SSH "$1" "weka local ps --no-header -o name,running | awk '/upgrade/ {print $2}'")
-  upgrade_container "$UPGRADECONT" "$CURHOST"
-
   MOUNTWEKA=$($SSH "$1" "mountpoint -qd /weka/")
   weka_mount "$MOUNTWEKA" "$CURHOST"
 
+  WEKAAGENTSRV=$($SSH "$1" sudo systemctl is-active weka-agent.service)
+  weka_agent_service "$WEKAAGENTSRV" "$CURHOST" || return
+
   if [ ! -z $AWS ]; then
     IPCLEANUP=$($SSH "$1" "sudo weka local resources -J | grep -c -E -o '([0]{1,3}[\.]){3}[0]{1,3}'")
+     weka_ip_cleanup "$IPCLEANUP" "$CURHOST"
   else
     IPCLEANUP=$($SSH "$1" "weka local resources -J | grep -c -E -o '([0]{1,3}[\.]){3}[0]{1,3}'")
+     weka_ip_cleanup "$IPCLEANUP" "$CURHOST"
   fi
-  weka_ip_cleanup "$IPCLEANUP" "$CURHOST"
-
-  SMBCHECK=$($SSH "$1" "weka local ps 2>/dev/null | grep samba")
+  
+  SMBCHECK=$($SSH "$1" "weka local ps | grep samba")
   smb_check "$SMBCHECK" "$CURHOST"
+
+  UPGRADECONT=$($SSH "$1" "weka local ps --no-header -o name,running | awk '/upgrade/ {print $2}'")
+  upgrade_container "$UPGRADECONT" "$CURHOST"
+
+  WEKACONSTATUS=$($SSH "$1" weka local ps --no-header -o name,running | grep -i default | awk '{print $2}')
+  weka_container_status "$WEKACONSTATUS" "$CURHOST"
 
   if [ ! -z $ROLL ]; then
   WEKALOGIN=$($SSH "$1" "weka cluster nodes 2>&1 | awk '/error:/'")
@@ -566,25 +568,27 @@ local CURHOST REMOTEDATE WEKACONSTATUS RESULTS1 RESULTS2 UPGRADECONT MOUNTWEKA
   NOTICE "VERIFYING SETTINGS ON CLIENTs HOST $CURHOST"
   check_ssh_connectivity "$1" "$CURHOST" || return
 
-  weka_agent_service "$CURHOST"
-
-  REMOTEDATE=$($SSH "$1" "date --utc '+%s'")
-  diffdate "$REMOTEDATE" "$CURHOST"
-
-  WEKACONSTATUS=$($SSH "$1" weka local ps --no-header -o name,running | grep -i client | awk '{print $2}')
-  weka_container_status "$WEKACONSTATUS" "$CURHOST"
-
   RESULTS1=$($SSH "$1" df -m "$LOGSDIR1" | awk '{print $4}' | tail -n +2)
   RESULTS2=$($SSH "$1" df -m "$LOGSDIR2" | awk '{print $4}' | tail -n +2)
   freespace_client "$RESULTS1" "$RESULTS2" "$CURHOST"
 
-  client_web_test
+  WEBTEST=$($SSH "$1" curl -sL -w "%{http_code}" "http://www.google.com/" -o /dev/null)
+  client_web_test "$WEBTEST"
 
-  UPGRADECONT=$($SSH "$1" "weka local ps --no-header -o name,running | awk '/upgrade/ {print $2}'")
-  upgrade_container "$UPGRADECONT" "$CURHOST"
+  REMOTEDATE=$($SSH "$1" "date --utc '+%s'")
+  diffdate "$REMOTEDATE" "$CURHOST"
 
   MOUNTWEKA=$($SSH "$1" "mountpoint -qd /weka/")
   weka_mount "$MOUNTWEKA" "$CURHOST"
+  
+  WEKAAGENTSRV=$($SSH "$1" sudo systemctl is-active weka-agent.service)
+  weka_agent_service "$WEKAAGENTSRV" "$CURHOST" || return
+
+  WEKACONSTATUS=$($SSH "$1" weka local ps --no-header -o name,running | grep -i client | awk '{print $2}')
+  weka_container_status "$WEKACONSTATUS" "$CURHOST"
+
+  UPGRADECONT=$($SSH "$1" "weka local ps --no-header -o name,running | awk '/upgrade/ {print $2}'")
+  upgrade_container "$UPGRADECONT" "$CURHOST"
 
   if [ $XCEPT ];then
     WARN "Client checks completed please see logs for details $LOG"
