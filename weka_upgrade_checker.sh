@@ -307,10 +307,11 @@ fi
 
 #client version during production can run n-1 however during upgrade they need to be on the same version as cluster otherwise after upgrade they will be n-2.
 NOTICE "VERIFYING CLIENT WEKA VERSION"
-CLIENTFVER=$(weka cluster host -c -o hostname,ips,software | grep -v "$MAJOR.$WEKAMINOR1.$WEKAMINOR2")
+CLIENTFVER=$(weka cluster host --no-header -c -o hostname,ips,software | grep -v "$MAJOR.$WEKAMINOR1.$WEKAMINOR2")
 if [ -z "$CLIENTFVER" ]; then
   GOOD "All Weka clients on correct version."
 else
+  CLIENTFVER=$(weka cluster host -c -o hostname,ips,software | grep -v "$MAJOR.$WEKAMINOR1.$WEKAMINOR2")
   BAD "The following Weka clients should be upgraded to $WEKAVERSION."
   WARN "\n$CLIENTFVER\n"
 fi
@@ -357,8 +358,6 @@ function weka_agent_service() {
     fi
   else
     BAD " [WEKA AGENT SERVICE] Weka Agent Serivce is NOT running on host $2"
-    WARN " [WEKA AGENT SERVICE] Start Weka Agent Serivce on host $2 and rerun the tests"
-    return 1
   fi
 }
 
@@ -528,9 +527,17 @@ local CURHOST REMOTEDATE WEKACONSTATUS RESULTS1 RESULTS2 UPGRADECONT MOUNTWEKA
   MOUNTWEKA=$($SSH "$1" "mountpoint -qd /weka/")
   weka_mount "$MOUNTWEKA" "$CURHOST"
 
-  #if service is not running move to next host via return.
   WEKAAGENTSRV=$($SSH "$1" sudo systemctl is-active weka-agent.service)
-  weka_agent_service "$WEKAAGENTSRV" "$CURHOST" || return
+  weka_agent_service "$WEKAAGENTSRV" "$CURHOST"
+
+  WEKACONSTATUS=$($SSH "$1" weka local ps --no-header -o name,running | grep -i default | awk '{print $2}')
+  weka_container_status "$WEKACONSTATUS" "$CURHOST" || return
+
+  SMBCHECK=$($SSH "$1" "weka local ps | grep samba")
+  smb_check "$SMBCHECK" "$CURHOST"
+
+  UPGRADECONT=$($SSH "$1" "weka local ps --no-header -o name,running | awk '/upgrade/ {print $2}'")
+  upgrade_container "$UPGRADECONT" "$CURHOST"
 
   if [ ! -z $AWS ]; then
     IPCLEANUP=$($SSH "$1" "sudo weka local resources -J | grep -c -E -o '([0]{1,3}[\.]){3}[0]{1,3}'")
@@ -539,15 +546,6 @@ local CURHOST REMOTEDATE WEKACONSTATUS RESULTS1 RESULTS2 UPGRADECONT MOUNTWEKA
     IPCLEANUP=$($SSH "$1" "weka local resources -J | grep -c -E -o '([0]{1,3}[\.]){3}[0]{1,3}'")
      weka_ip_cleanup "$IPCLEANUP" "$CURHOST"
   fi
-
-  SMBCHECK=$($SSH "$1" "weka local ps | grep samba")
-  smb_check "$SMBCHECK" "$CURHOST"
-
-  UPGRADECONT=$($SSH "$1" "weka local ps --no-header -o name,running | awk '/upgrade/ {print $2}'")
-  upgrade_container "$UPGRADECONT" "$CURHOST"
-
-  WEKACONSTATUS=$($SSH "$1" weka local ps --no-header -o name,running | grep -i default | awk '{print $2}')
-  weka_container_status "$WEKACONSTATUS" "$CURHOST"
 
   if [ ! -z $ROLL ]; then
   WEKALOGIN=$($SSH "$1" "weka cluster nodes 2>&1 | awk '/error:/'")
@@ -583,7 +581,7 @@ local CURHOST REMOTEDATE WEKACONSTATUS RESULTS1 RESULTS2 UPGRADECONT MOUNTWEKA
   weka_mount "$MOUNTWEKA" "$CURHOST"
 
   WEKAAGENTSRV=$($SSH "$1" sudo systemctl is-active weka-agent.service)
-  weka_agent_service "$WEKAAGENTSRV" "$CURHOST" || return
+  weka_agent_service "$WEKAAGENTSRV" "$CURHOST"
 
   WEKACONSTATUS=$($SSH "$1" weka local ps --no-header -o name,running | grep -E 'client|default' | awk '{print $2}')
   weka_container_status "$WEKACONSTATUS" "$CURHOST"
