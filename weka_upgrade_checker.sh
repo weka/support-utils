@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-#version=1.0.28
+#version=1.0.29
 
 # Colors
 export NOCOLOR="\033[0m"
@@ -271,6 +271,21 @@ if [[ "$MAJOR" -eq 3 ]] && [[ "$WEKAMINOR1" -eq 12 ]]; then
   else
     WARN "Unable to verify Raid Reduction settings."
   fi
+fi
+
+#squelch check on version 3.9 WEKAPP-229504
+if [[ "$MAJOR" -eq 3 ]] && [[ "$WEKAMINOR1" -eq 9 ]]; then
+  NOTICE "VERIFYING BUCKET L2BLOCK ENTRIES"
+  COMPUTENODEID=$(weka cluster nodes --no-header -o id,role | awk '{print $1}')
+  for ID in ${COMPUTENODEID}; do
+    L2BLOCK=$(weka debug manhole --node $ID buckets_get_registry_stats | awk  '/entriesInL2Block/{getline ; getline ; getline; gsub(",",""); $2>= 477}')
+    if [ ! -z "$L2BLOCK" ]; then
+      WARN "Found high L2BLOCK values for Weka buckets, Please contact Weka Support prior to upgrade Ref:WEKAPP-229504."
+      BAD "$(weka cluster nodes $ID -o id,hostname,role)"
+    fi
+  done
+else
+  GOOD "Bucket L2BLOCK entries Verified"
 fi
 
 NOTICE "VERIFYING SSD FIRMWARE"
