@@ -276,7 +276,7 @@ fi
 #squelch check on version 3.9 WEKAPP-229504
 if [[ "$MAJOR" -eq 3 ]] && [[ "$WEKAMINOR1" -eq 9 ]]; then
   NOTICE "VERIFYING BUCKET L2BLOCK ENTRIES"
-  COMPUTENODEID=$(weka cluster nodes --no-header -o id,role | awk '{print $1}')
+  COMPUTENODEID=$(weka cluster nodes --no-header -o id,role | awk '/COMPUTE/ {print $1}')
   for ID in ${COMPUTENODEID}; do
     L2BLOCK=$(weka debug manhole --node $ID buckets_get_registry_stats | awk  '/entriesInL2Block/{getline ; getline ; getline; gsub(",",""); print $2}' | awk '$1>= 477')
     if [ ! -z "$L2BLOCK" ]; then
