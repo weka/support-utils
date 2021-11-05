@@ -250,7 +250,7 @@ else
 fi
 
 NOTICE "VERIFYING IF SMALL WEKA FILE SYSTEMS EXISTS"
-SMALLFS=$(weka fs -o name,availableSSD -R --no-header | awk '$3< 1073741824')
+SMALLFS=$(weka fs -o name,availableSSD -R --no-header | awk '$2< 1073741824')
 if [ -z "$SMALLFS" ]; then
   GOOD "No small Weka file system found."
 else
@@ -278,7 +278,7 @@ if [[ "$MAJOR" -eq 3 ]] && [[ "$WEKAMINOR1" -eq 9 ]]; then
   NOTICE "VERIFYING BUCKET L2BLOCK ENTRIES"
   COMPUTENODEID=$(weka cluster nodes --no-header -o id,role | awk '{print $1}')
   for ID in ${COMPUTENODEID}; do
-    L2BLOCK=$(weka debug manhole --node $ID buckets_get_registry_stats | awk  '/entriesInL2Block/{getline ; getline ; getline; gsub(",",""); $2>= 477}')
+    L2BLOCK=$(weka debug manhole --node $ID buckets_get_registry_stats | awk  '/entriesInL2Block/{getline ; getline ; getline; gsub(",",""); print $2}' | awk '$1>= 477')
     if [ ! -z "$L2BLOCK" ]; then
       WARN "Found high L2BLOCK values for Weka buckets, Please contact Weka Support prior to upgrade Ref:WEKAPP-229504."
       BAD "$(weka cluster nodes $ID -o id,hostname,role)"
