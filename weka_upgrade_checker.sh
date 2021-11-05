@@ -284,7 +284,6 @@ if [[ "$MAJOR" -eq 3 ]] && [[ "$WEKAMINOR1" -eq 9 ]]; then
       BAD "$(weka cluster nodes $ID -o id,hostname,role)"
     fi
   done
-else
   GOOD "Bucket L2BLOCK entries Verified"
 fi
 
