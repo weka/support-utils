@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-#version=1.0.29
+#version=1.0.30
 
 # Colors
 export NOCOLOR="\033[0m"
@@ -278,13 +278,16 @@ if [[ "$MAJOR" -eq 3 ]] && [[ "$WEKAMINOR1" -eq 9 ]]; then
   NOTICE "VERIFYING BUCKET L2BLOCK ENTRIES"
   COMPUTENODEID=$(weka cluster nodes --no-header -o id,role | awk '/COMPUTE/ {print $1}')
   for ID in ${COMPUTENODEID}; do
+    echo -ne "${CYAN}working on Compute NodeID $ID $NOCOLOR"\\r
     L2BLOCK=$(weka debug manhole --node $ID buckets_get_registry_stats | awk  '/entriesInL2Block/{getline ; getline ; getline; gsub(",",""); print $2}' | awk '$1>= 477')
     if [ ! -z "$L2BLOCK" ]; then
-      WARN "Found high L2BLOCK values for Weka buckets, Please contact Weka Support prior to upgrade Ref:WEKAPP-229504."
-      BAD "$(weka cluster nodes $ID -o id,hostname,role)"
+      BAD -e "\nFound high L2BLOCK values for Weka buckets, Please contact Weka Support prior to upgrade Ref:WEKAPP-229504."
+      WARN "$(weka cluster nodes $ID -o id,hostname,role)"
     fi
   done
-  GOOD "Bucket L2BLOCK entries Verified"
+  GOOD -e "\nBucket L2BLOCK check completed" 
+else
+  WARN -e "\nCheck is designed for Weka systems on 3.9"
 fi
 
 NOTICE "VERIFYING SSD FIRMWARE"
