@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-#version=1.0.30
+#version=1.0.31
 
 # Colors
 export NOCOLOR="\033[0m"
@@ -304,7 +304,7 @@ WEKADRIVE=$(weka cluster drive --no-header -o id,uuid,hostname,status | grep -v 
 if [ -z "$WEKADRIVE" ]; then
   GOOD "All drives are in OK status."
 else
-  BAD "The following Drives are no Active."
+  BAD "The following Drives are not Active."
   WARN "\n$WEKADRIVE\n"
 fi
 
@@ -324,11 +324,11 @@ fi
 
 #client version during production can run n-1 however during upgrade they need to be on the same version as cluster otherwise after upgrade they will be n-2.
 NOTICE "VERIFYING CLIENT WEKA VERSION"
-CLIENTFVER=$(weka cluster host --no-header -c -o hostname,ips,software | grep -v "$MAJOR.$WEKAMINOR1.$WEKAMINOR2")
+CLIENTFVER=$(weka cluster host --no-header -c -o hostname,ips,software | grep -v "$MAJOR.$WEKAMINOR1")
 if [ -z "$CLIENTFVER" ]; then
   GOOD "All Weka clients on correct version."
 else
-  CLIENTFVER=$(weka cluster host -c -o hostname,ips,software | grep -v "$MAJOR.$WEKAMINOR1.$WEKAMINOR2")
+  CLIENTFVER=$(weka cluster host -c -o hostname,ips,software | grep -v "$MAJOR.$WEKAMINOR1")
   BAD "The following Weka clients should be upgraded to $WEKAVERSION."
   WARN "\n$CLIENTFVER\n"
 fi
