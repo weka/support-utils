@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-#version=1.0.31
+#version=1.0.32
 
 # Colors
 export NOCOLOR="\033[0m"
@@ -266,7 +266,7 @@ if [[ "$MAJOR" -eq 3 ]] && [[ "$WEKAMINOR1" -eq 12 ]]; then
       if [ $RAID -eq 1 ]; then
         GOOD "Raid Reduction is disabled."
       else
-        BAD "Raid Reduction is ENABLED issue command weka debug jrpc config_override_key key='clusterInfo.reserved[1]' value=1 to disable."
+        BAD "Raid Reduction is ENABLED issue command 'weka debug jrpc config_override_key key='clusterInfo.reserved[1]' value=1' to disable."
       fi
   else
     WARN "Unable to verify Raid Reduction settings."
@@ -285,9 +285,9 @@ if [[ "$MAJOR" -eq 3 ]] && [[ "$WEKAMINOR1" -eq 9 ]]; then
       WARN "$(weka cluster nodes $ID -o id,hostname,role)"
     fi
   done
-  GOOD -e "\nBucket L2BLOCK check completed" 
+  GOOD "\nBucket L2BLOCK check completed"
 else
-  WARN -e "\nCheck is designed for Weka systems on 3.9"
+  WARN "\nCheck is designed for Weka systems on 3.9"
 fi
 
 NOTICE "VERIFYING SSD FIRMWARE"
