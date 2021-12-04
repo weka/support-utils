@@ -278,7 +278,7 @@ if [[ "$MAJOR" -eq 3 ]] && [[ "$WEKAMINOR1" -eq 9 ]]; then
   NOTICE "VERIFYING BUCKET L2BLOCK ENTRIES"
   COMPUTENODEID=$(weka cluster nodes --no-header -o id,role | awk '/COMPUTE/ {print $1}')
   for ID in ${COMPUTENODEID}; do
-    echo -ne "${CYAN}working on Compute NodeID $ID $NOCOLOR"\\r
+    echo -ne "${CYAN}working on Compute NodeID $ID $NOCOLOR\033[Complete\r"
     L2BLOCK=$(weka debug manhole --node $ID buckets_get_registry_stats | awk  '/entriesInL2Block/{getline ; getline ; getline; gsub(",",""); print $2}' | awk '$1>= 477')
     if [ ! -z "$L2BLOCK" ]; then
       BAD -e "\nFound high L2BLOCK values for Weka buckets, Please contact Weka Support prior to upgrade Ref:WEKAPP-229504."
