@@ -188,7 +188,7 @@ else
   WARN "Rebuild in progress, will continue after it's complete."
   while : ; do
     REBUILDSTATUS="$(weka status rebuild -J | awk '/progressPercent/ {print $2}' | tr -d ',')"
-    echo -ne "$REBUILDSTATUS%\033[0K\r"
+    echo -ne "$REBUILDSTATUS%\033[Done\r"
     if [ "$REBUILDSTATUS" = 0 ];then
       GOOD "Rebuild complete, continuing."
       break
@@ -277,7 +277,7 @@ NOTICE "VERIFYING REBUILD STATUS COMPLETE"
 WARN "Waiting for rebuild to complete please standby..."
   while : ; do
     REBUILDSTATUS="$(weka status rebuild -J | awk '/progressPercent/ {print $2}' | tr -d ',')"
-    echo -ne "$REBUILDSTATUS%\033[0K\r"
+    echo -ne "$REBUILDSTATUS%\033[Done\r"
     if [ "$REBUILDSTATUS" = 0 ];then
       GOOD "Rebuild complete."
       break
