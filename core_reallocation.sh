@@ -67,7 +67,7 @@ done
 
 shift $((OPTIND -1))
 
-if [ -z "${TOTALC}" ] || [ -z "${DRIVE}" ] || [ -z "${FRONT}" ] ; then
+if [ -z "${TOTALC}" ] || [ -z "${DRIVE}" ] || [ -z "${FRONT}" ] || [ -z "${NC}" ]; then
     usage
 fi
 
@@ -404,7 +404,7 @@ for HOST in ${BKHOSTNAME}; do
   WARN "Waiting for rebuild to complete please standby..."
   while : ; do
     REBUILDSTATUS="$(weka status rebuild -J | awk '/progressPercent/ {print $2}' | tr -d ',')"
-    echo -ne "$REBUILDSTATUS%\033[0K\r"
+    echo -ne "$REBUILDSTATUS%\033[Done\r"
     if [ "$REBUILDSTATUS" = 0 ];then
       GOOD "Rebuild complete."
       break
