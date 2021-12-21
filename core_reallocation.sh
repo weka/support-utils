@@ -18,6 +18,8 @@ CLIENTHOST="$DIR/weka_client_host.txt"
 BACKENDIP=$(weka cluster host -b --no-header -o ips,status | awk '/UP/ {print $1}' | tr -d ',')
 WEKACLIENT=$(weka cluster host -c --no-header -o id,hostname,ips,status | awk '/UP/ {print $1}')
 CURRHOST=$(weka local resources | awk '/Management/ {print $3}')
+CSLEEP=120
+BSLEEP=60
 
 weka cluster host -c --no-header -o hostname > $CLIENTHOST
 
@@ -29,6 +31,8 @@ Usage: [-d To specify the total number of drive cores to be allocated to Weka]
 Usage: [-f To specify the total number of frontend cores to be allocated to Weka]
 Usage: [-c Number of client hosts to be blacklisted at a time, should be greater than 2. If you want to skip client blacklisting use -c 0]
 Usage: [-b To perform core allocation changes on a single host]
+Usage: [-t Timeout in seconds between client blacklisting, default value 120 seconds]
+Usage: [-T Timeout in seconds between backend blacklisting and core relloaction, default value 60 seconds]
 
 This script allow the reallocation of cores designated to Weka. Prior to core re-allocation all backend hosts and client hosts must go through a blacklist process this ensures that there are no partially connected nodes.
 OPTIONS:
@@ -37,11 +41,14 @@ OPTIONS:
   -f  Assign number of Frontend cores.
   -c  Number for client hosts to blacklist at a time.
   -b  perform actions on a single host
+  -t  Timeout in seconds between client blacklisting.
+  -T  Timeout in seconds between backend blacklisting and core relloaction.
+
 EOF
 exit
 }
 
-while getopts ":t:d:f:c:b:" o; do
+while getopts ":t:d:f:c:b:s:S:" o; do
     case "${o}" in
         t)
             TOTALC=${OPTARG}
@@ -58,6 +65,12 @@ while getopts ":t:d:f:c:b:" o; do
             ;;
         b)
             BACKEND=${OPTARG}
+            ;;
+        s)
+            CSLEEP=${OPTARG}
+            ;;
+        S)
+            BSLEEP=${OPTARG}
             ;;
         :)
             echo "ERROR: Option -$OPTARG requires an argument"
@@ -88,7 +101,7 @@ function _sleep() {
     for ii in $(seq "${SLEEP}" -1 1)
     do
         sleep 1
-        printf ${CYAN}"\r%-28s" " Sleeping for $ii seconds ..."
+        printf "${CYAN}""\r%-28s" " Sleeping for $ii seconds ..."
     done
     printf "\r%-28s" " "
 }
@@ -101,16 +114,16 @@ function LogRotate () {
 local f="$1"
 local limit="$2"
 # Deletes old log file
-  if [ -f "$f" ] ; then
+  if [ -f "$f" ]; then
     CNT=${limit}
     let P_CNT=CNT-1
-  if [ -f "${f}"."${limit}" ] ; then
+  if [ -f "${f}"."${limit}" ]; then
     rm "${f}"."${limit}"
   fi
 
 # Renames logs .1 trough .3
 while [[ $CNT -ne 1 ]] ; do
-  if [ -f "${f}"."${P_CNT}" ] ; then
+  if [ -f "${f}"."${P_CNT}" ]; then
     mv "${f}"."${P_CNT}" "${f}"."${CNT}"
   fi
   let CNT=CNT-1
@@ -201,7 +214,7 @@ else
   while : ; do
     REBUILDSTATUS="$(weka status rebuild -J | awk '/progressPercent/ {print $2}' | tr -d ',')"
     echo -ne "$REBUILDSTATUS%\\r"
-    if [ "$REBUILDSTATUS" = 0 ];then
+    if [ "$REBUILDSTATUS" = 0 ]; then
       GOOD "Rebuild complete, continuing."
       break
     fi
@@ -248,14 +261,18 @@ done
 GOOD "[SSH PASSWORDLESS CONNECTIVITY CHECK] SSH connectivity test completed"
 
 function _distribute() {
-NOTICE "DOWNLOADING NECESSARY FILES"
-curl -Lo $FILE https://weka-field-scripts.s3.amazonaws.com/update_core_config.py >/dev/null
 
 if [ ! -e "$FILE" ] ; then
-  BAD "Unable to download file"
-  exit
+  NOTICE "DOWNLOADING NECESSARY FILES"
+  curl -Lo $FILE https://weka-field-scripts.s3.amazonaws.com/update_core_config.py 
+  if [ ! -e "$FILE" ] ; then
+    BAD "Unable to download file"
+    exit
+  else
+    GOOD "File downloaded successfully"
+  fi
 else
-  GOOD "File downloaded successfully"
+  GOOD "Located $FILE"
 fi
 
 NOTICE "VERIFYING $FILE PERMISSIONS"
@@ -269,7 +286,7 @@ fi
 
 NOTICE "DISTRIBUTING FILE TO HOST $1"
   scp -p "$FILE" root@"$1":/$DIR > /dev/null
-  if [ $? -ne 0 ];then
+  if [ $? -ne 0 ]; then
     BAD "Unable to SCP @FILE to $1"
     WARN "Skipping $1"
     return
@@ -281,14 +298,14 @@ NOTICE "EXECUTING CORE CHANGES TO HOST $1"
 
   ssh root@"$1" "$DIR/update_core_config.py $TOTALC $DRIVE $FRONT"
 
-  _sleep 60
+  _sleep "$BSLEEP"
 
 NOTICE "VERIFYING REBUILD STATUS COMPLETE"
 WARN "Waiting for rebuild to complete please standby..."
   while : ; do
     REBUILDSTATUS="$(weka status rebuild -J | awk '/progressPercent/ {print $2}' | tr -d ',')"
     echo -ne "$REBUILDSTATUS%\\r"
-    if [ "$REBUILDSTATUS" = 0 ];then
+    if [ "$REBUILDSTATUS" = 0 ]; then
       GOOD "Rebuild complete.   "
       break
     fi
@@ -298,7 +315,7 @@ NOTICE "VERIFYING NODE STATUS"
 WARN "Waiting for nodes belonging to $1 to rejoin cluster"
   while : ; do
     WEKABKNODESSTATUS=$(weka cluster nodes -b --no-header -o id,role,hostname,ips,status | grep "$1" | grep -v UP | awk '{print $1}')
-    if [ -z "$WEKABKNODESSTATUS" ];then
+    if [ -z "$WEKABKNODESSTATUS" ]; then
       GOOD "All Nodes belonging to $1 in UP status."
       break
     fi
@@ -312,17 +329,17 @@ function client_blacklisting() {
 
   NOTICE "BLACKLISTING NODES BELONGING TO HOST $2"
     weka debug blacklist add --node "$1" --force
-    if [[ -z $(weka debug blacklist --no-header list "$1") ]];then
+    if [[ -z $(weka debug blacklist --no-header list "$1") ]]; then
       BAD "Unable to add node $1 from blacklist"
     else
-      GOOD "Node ID $1 belonging host $2 black listed successfully"
+      GOOD "Node ID $1 belonging host $2 blacklisted successfully"
     fi
 }
 
 function client_remove_blacklisting() {
-  echo "REMOVING NODES FROM BLACKLIST FOR HOST 2"
+  echo "REMOVING NODES FROM BLACKLIST FOR HOST $2"
     weka debug blacklist remove --node "$1"
-    if [[ -z $(weka debug blacklist --no-header list -o id | grep -w  "$1") ]];then
+    if [[ -z $(weka debug blacklist --no-header list -o id | grep -w  "$1") ]]; then
       GOOD "Node ID $1 belonging to host $2 removed from blacklist successfully"
     else
       BAD "Unable to remove node $1 to blacklist"
@@ -334,7 +351,7 @@ function client_node_status() {
   WARN "Waiting for nodes belonging to HOST $2 to rejoin cluster"
   while : ; do
       WEKACLNODESSTATUS=$(weka cluster nodes --no-header "$1" -o status)
-    if [  "$WEKACLNODESSTATUS" == UP ];then
+    if [  "$WEKACLNODESSTATUS" == UP ]; then
       GOOD "Nodes $1 belonging to $HOST in UP status."
       break
     fi
@@ -346,7 +363,7 @@ function numlines () {
     local line
     local rc="1"
 
-    for i in $(seq 1 $N)
+    for i in $(seq 1 "$N")
     do
         read line
         if [ $? -eq 0 ]
@@ -375,7 +392,7 @@ function backend_blacklisting () {
   NOTICE "VERIFYING NODES SUCCESSFULLY BLACKLISTED"
   for ID in ${WEKABKNODESID}; do
     weka debug blacklist add --node "$ID" --force
-    if [[ -z $(weka debug blacklist --no-header list "$ID") ]];then
+    if [[ -z $(weka debug blacklist --no-header list "$ID") ]]; then
       BAD "Unable to add node $ID belonging to $1 to blacklist"
     else
       GOOD "Node ID $ID belonging $1 blacked listed successfully"
@@ -386,7 +403,7 @@ function backend_blacklisting () {
 
   NOTICE "VERIFYING NODE STATUS FOR $1"
   for ID in ${WEKABKNODESID}; do
-    if [[ $(weka cluster nodes "$ID" --no-header -o status) == DOWN ]];then
+    if [[ $(weka cluster nodes "$ID" --no-header -o status) == DOWN ]]; then
       GOOD "Node ID $ID status Down"
     else
       BAD "Node ID $ID status is Not Down"
@@ -398,7 +415,7 @@ function backend_blacklisting () {
   NOTICE "REMOVING NODES FROM BLACKLIST FOR $1"
   for ID in ${WEKABKNODESID}; do
     weka debug blacklist remove --node "$ID"
-    if [[ -z $(weka debug blacklist --no-header list -o id | grep -w $ID) ]];then
+    if [[ -z $(weka debug blacklist --no-header list -o id | grep -w "$ID") ]]; then
       GOOD "Node ID $ID belonging $1 Removed from blacklist successfully"
     else
       BAD "Unable to remove node $ID belonging to $1 to blacklist"
@@ -412,7 +429,7 @@ function backend_blacklisting () {
   while : ; do
     REBUILDSTATUS="$(weka status rebuild -J | awk '/progressPercent/ {print $2}' | tr -d ',')"
     echo -ne "$REBUILDSTATUS%\\r"
-    if [ "$REBUILDSTATUS" = 0 ];then
+    if [ "$REBUILDSTATUS" = 0 ]; then
       GOOD "Rebuild complete.   "
       break
     fi
@@ -422,40 +439,40 @@ function backend_blacklisting () {
   WARN "Waiting for nodes belonging to $1 to rejoin cluster"
   while : ; do
       WEKABKNODESSTATUS=$(weka cluster nodes -b --no-header -o id,role,hostname,ips,status | grep "$1" | grep -v UP | awk '{print $1}')
-    if [ -z "$WEKABKNODESSTATUS" ];then
+    if [ -z "$WEKABKNODESSTATUS" ]; then
       GOOD "All Nodes belonging to $1 in UP status."
       break
     fi
   done
 
-  _sleep 60
+  _sleep "$BSLEEP"
 
 }
 
 
 main() {
 
-if [[ ! -z "$BACKEND" ]] ;then
+if [[ ! -z "$BACKEND" ]] ; then
 NOTICE "VALIDATING BACKEND HOST"
   HTYPE=$(weka cluster host -o ips,mode | grep -w "$BACKEND" | awk '{print $2}')
   HNAME=$(weka cluster host -o hostname,ips | grep -w "$BACKEND" | awk '{print $1}')
-  if [ "${HTYPE}" != "backend" ] || [ -z "${HTYPE}" ];then
+  if [ "${HTYPE}" != "backend" ] || [ -z "${HTYPE}" ]; then
     BAD "Please provide valid IP of a backend host"
     exit
   else
     GOOD "Backend host verified"
     backend_blacklisting "$HNAME"
   fi
-elif [[ -z "$BACKEND" ]] ;then
+elif [[ -z "$BACKEND" ]] ; then
   for HOST in ${BKHOSTNAME}; do
-    backend_blacklisting $HOST
+    backend_blacklisting "$HOST"
   done
 fi
 
 NOTICE "WORKING ON CLIENT HOSTS"
-if [ -s "$CLIENTHOST" ];then
-  if [ "$NC" -ne 0 ];then
-    while dataset=$(numlines $NC); do
+if [ -s "$CLIENTHOST" ]; then
+  if [ "$NC" -ne 0 ]; then
+    while dataset=$(numlines "$NC"); do
 
       for i in $dataset;do
         nodes+=( $(weka cluster nodes --no-header -o id,role,hostname,ips,status | grep "$i" | awk '{print $1}') )
@@ -484,9 +501,7 @@ if [ -s "$CLIENTHOST" ];then
         nodes=("${nodes[@]/"$i"}")
       done
 
-      _sleep 60
-
-      echo -e "\n"
+      _sleep "$CSLEEP"
 
     done < $CLIENTHOST
   else
@@ -502,7 +517,7 @@ weka debug manhole -s 0 disable_grim_reaper > /dev/null
 
 sleep 5
 
-if [ $(weka local run /weka/cfgdump | grep grimReaperEnabled | cut -d":" -f2 | tr -d " "',') == false ];then
+if [ $(weka local run /weka/cfgdump | grep grimReaperEnabled | cut -d":" -f2 | tr -d " "',') == false ]; then
   GOOD "Grim reaper disabled successfully"
 else
   BAD "Unable to modify grim reaper settings"
@@ -515,14 +530,14 @@ weka debug jrpc config_override_key key=clusterInfo.allowChangingActiveHostNodes
 
 sleep 5
 
-if [ $(weka local run /weka/cfgdump | grep allowChangingActiveHostNodes | cut -d":" -f2 | tr -d " "',') == true ];then
+if [ $(weka local run /weka/cfgdump | grep allowChangingActiveHostNodes | cut -d":" -f2 | tr -d " "',') == true ]; then
   GOOD "Core allocation settings applied successfully"
 else
   BAD "Unable to make configuration change"
   exit 1
 fi
 
-if [ -z "$BACKEND" ];then 
+if [ -z "$BACKEND" ]; then 
   for HOST in ${BACKENDIP}; do
     _distribute "$HOST"
   done
@@ -530,14 +545,14 @@ else
   _distribute "$BACKEND"
 fi
 
-NOTICE "ENABLING GRIM reaper"
+NOTICE "ENABLING GRIM REAPER"
 # need to enable grimreaper
 weka debug manhole -s 0 enable_grim_reaper > /dev/null
 weka debug manhole -s 0 set_grim_reaper_grace secs=30 > /dev/null
 
 sleep 5
 
-if [ $(weka local run /weka/cfgdump | grep grimReaperEnabled | cut -d":" -f2 | tr -d " "',') == true ];then
+if [ $(weka local run /weka/cfgdump | grep grimReaperEnabled | cut -d":" -f2 | tr -d " "',') == true ]; then
   GOOD "Grim reaper enabled successfully"
 else
   BAD "Unable to modify grim reaper settings"
@@ -551,7 +566,7 @@ weka debug jrpc config_override_key key=clusterInfo.allowChangingActiveHostNodes
 
 sleep 5
 
-if [ $(weka local run /weka/cfgdump | grep allowChangingActiveHostNodes | cut -d":" -f2 | tr -d " "',') == false ];then
+if [ $(weka local run /weka/cfgdump | grep allowChangingActiveHostNodes | cut -d":" -f2 | tr -d " "',') == false ]; then
   GOOD "Core allocation settings applied successfully"
 else
   BAD "Unable to make configuration change"
