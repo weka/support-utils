@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-#version=1.2
+#version=1.3
 
 # Colors
 export NOCOLOR="\033[0m"
@@ -48,7 +48,7 @@ EOF
 exit
 }
 
-while getopts ":t:d:f:c:b:s:S:" o; do
+while getopts ":t:d:f:c:b:s:S:l:" o; do
     case "${o}" in
         t)
             TOTALC=${OPTARG}
@@ -71,6 +71,9 @@ while getopts ":t:d:f:c:b:s:S:" o; do
             ;;
         S)
             BSLEEP=${OPTARG}
+            ;;
+        l)
+            BKLIST=${OPTARG}
             ;;
         :)
             echo "ERROR: Option -$OPTARG requires an argument"
@@ -461,7 +464,9 @@ NOTICE "VALIDATING BACKEND HOST"
     GOOD "Backend host verified"
     backend_blacklisting "$HNAME"
   fi
-elif [[ -z "$BACKEND" ]] ;then
+fi
+
+if [[ -z "$BACKEND" && "$BKLIST" != 0 ]] ;then
   for HOST in ${BKHOSTNAME}; do
     backend_blacklisting $HOST
   done
