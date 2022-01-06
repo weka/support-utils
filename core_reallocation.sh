@@ -33,6 +33,7 @@ Usage: [-c Number of client hosts to be blacklisted at a time, should be greater
 Usage: [-b To perform core allocation changes on a single host]
 Usage: [-t Timeout in seconds between client blacklisting, default value 120 seconds]
 Usage: [-T Timeout in seconds between backend blacklisting and core relloaction, default value 60 seconds]
+Usage: [-l Skip blacklist of backend hosts.]
 
 This script allow the reallocation of cores designated to Weka. Prior to core re-allocation all backend hosts and client hosts must go through a blacklist process this ensures that there are no partially connected nodes.
 OPTIONS:
@@ -43,6 +44,7 @@ OPTIONS:
   -b  perform actions on a single host
   -t  Timeout in seconds between client blacklisting.
   -T  Timeout in seconds between backend blacklisting and core relloaction.
+  -l  Skip blacklist of backend hosts.
 
 EOF
 exit
