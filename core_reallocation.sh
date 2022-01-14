@@ -31,8 +31,8 @@ Usage: [-d To specify the total number of drive cores to be allocated to Weka]
 Usage: [-f To specify the total number of frontend cores to be allocated to Weka]
 Usage: [-c Number of client hosts to be blacklisted at a time, should be greater than 2. If you want to skip client blacklisting use -c 0]
 Usage: [-b To perform core allocation changes on a single host]
-Usage: [-t Timeout in seconds between client blacklisting, default value 120 seconds]
-Usage: [-T Timeout in seconds between backend blacklisting and core relloaction, default value 60 seconds]
+Usage: [-s Timeout in seconds between client blacklisting, default value 120 seconds]
+Usage: [-S Timeout in seconds between backend blacklisting and core relloaction, default value 60 seconds]
 Usage: [-l Skip blacklist of backend hosts.]
 
 This script allow the reallocation of cores designated to Weka. Prior to core re-allocation all backend hosts and client hosts must go through a blacklist process this ensures that there are no partially connected nodes.
@@ -42,8 +42,8 @@ OPTIONS:
   -f  Assign number of Frontend cores.
   -c  Number for client hosts to blacklist at a time.
   -b  perform actions on a single host
-  -t  Timeout in seconds between client blacklisting.
-  -T  Timeout in seconds between backend blacklisting and core relloaction.
+  -s  Timeout in seconds between client blacklisting.
+  -S  Timeout in seconds between backend blacklisting and core relloaction.
   -l  Skip blacklist of backend hosts.
 
 EOF
