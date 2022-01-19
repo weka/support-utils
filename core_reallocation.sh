@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-#version=1.3
+#version=1.4
 
 # Colors
 export NOCOLOR="\033[0m"
@@ -322,6 +322,17 @@ WARN "Waiting for nodes belonging to $1 to rejoin cluster"
     fi
   done
 
+NFRONT=$(ssh root@"$1" weka local resources | grep FRONTEND | wc -l)
+NDRIVES=$(ssh root@"$1" weka local resources | grep DRIVES | wc -l)
+NCOMPUTE=$(ssh root@"$1" weka local resources | grep COMPUTE | wc -l)
+TCORES=$(( $NFRONT + $NDRIVES + $NCOMPUTE ))
+NOTICE "VALIDATING SETTING"
+if [[ "$NFRONT" != "$FRONT" || $NDRIVES != "$DRIVE" || "$TCORES" != "$TOTALC" ]]; then
+  BAD "Failed applying new core allocations to HOST $1"
+else
+  GOOD "New core changes applied successfully"
+fi
+
 }
 
 BKHOSTNAME=$(weka cluster host -b --no-header -o hostname,status | awk '/UP/ {print $1}')
@@ -544,11 +555,11 @@ else
   exit 1
 fi
 
-if [ -z "$BACKEND" ];then 
+if [ -z "$BACKEND" ];then
   for HOST in ${BACKENDIP}; do
     _distribute "$HOST"
   done
-else 
+else
   _distribute "$BACKEND"
 fi
 
